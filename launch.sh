@@ -4,6 +4,7 @@
 #
 # Modes:     throughput  (50 steps, with W&B)
 #            train       (N steps, with W&B and Tensorboard)
+#            profile     (~20 steps under nsys, one .nsys-rep per node)
 #
 # Sizes:     125m, 350m, 760m, 1.5b, 3b, 8b
 #
@@ -14,6 +15,7 @@
 #            ./launch.sh throughput 8b 50 1
 #            ./launch.sh train 760m 5000
 #            ./launch.sh train 1.5b 3000 8
+#            ./launch.sh profile 760m
 
 set -euo pipefail
 
@@ -30,6 +32,9 @@ hms_to_mins() {
 }
 
 ################ Mode config ################
+NSYS_PROFILE=false
+PROFILE_STEP_START=0
+PROFILE_STEP_END=0
 case $MODE in
     throughput)
         TRAINING_STEPS=${3:-50}
@@ -61,8 +66,24 @@ case $MODE in
         RESUBMIT=true
         MAX_RESUBMITS=10
         ;;
+    profile)
+        TRAINING_STEPS=${3:-20}
+        NODES=${4:-4}
+        TIME=00:30:00
+        EVAL_INTERVAL=$TRAINING_STEPS
+        EVAL_ITERS=0
+        LR_WARMUP_ITERS=5
+        LOGGING_EXTRA=""
+        WANDB=false
+        SAVE_INTERVAL=0
+        RESUBMIT=false
+        MAX_RESUBMITS=0
+        NSYS_PROFILE=true
+        PROFILE_STEP_START=10
+        PROFILE_STEP_END=15
+        ;;
     *)
-        echo "Unknown mode: $MODE. Choose: throughput, train"
+        echo "Unknown mode: $MODE. Choose: throughput, train, profile"
         exit 1
         ;;
 esac
@@ -106,6 +127,11 @@ esac
 GBS=256
 SEQ_LEN=4096
 JOB_NAME="gipfel-${MODE}-${MODEL_SIZE}-${TRAINING_STEPS}s-${NODES}n"
+
+# All ranks must be in --profile-ranks: Megatron only emits cudaProfilerStart
+# on listed ranks, so any rank missing here records an empty trace under nsys.
+NUM_RANKS=$((NODES * 4))
+PROFILE_RANKS=$(seq -s ' ' 0 $((NUM_RANKS - 1)))
 
 ################ W&B block ################
 if [ "$WANDB" = true ]; then
@@ -183,6 +209,12 @@ RESUBMIT=${RESUBMIT}
 MAX_RESUBMITS=${MAX_RESUBMITS}
 RESUBMIT_COUNT=\${RESUBMIT_COUNT:-0}
 echo "RESUBMIT_COUNT=\$RESUBMIT_COUNT (max=\$MAX_RESUBMITS)"
+
+# nsys profiling knobs (consumed by SETUP and TRAINING_CMD).
+NSYS_PROFILE_MODE=${NSYS_PROFILE}
+PROFILE_STEP_START=${PROFILE_STEP_START}
+PROFILE_STEP_END=${PROFILE_STEP_END}
+PROFILE_RANKS="${PROFILE_RANKS}"
 CONFIGS
 
 cat >> "$SCRIPT" << 'SETUP'
@@ -211,6 +243,19 @@ if [ "${RESUBMIT_COUNT:-0}" -eq 0 ]; then
     rm -rf "$TRITON_CACHE_DIR" "$TORCHINDUCTOR_CACHE_DIR"
 fi
 export OMP_NUM_THREADS=$((SLURM_CPUS_PER_TASK/SLURM_GPUS_PER_NODE))
+
+# nsys profiling: one .nsys-rep per node (each contains all 4 local ranks,
+# since nsys follows torchrun's child python workers). Empty in non-profile
+# modes — the unquoted expansion is a harmless extra space.
+NSYS_PREFIX=""
+PROFILE_ARGS=()
+if [ "$NSYS_PROFILE_MODE" = "true" ]; then
+    NSYS_OUTDIR="$LOG_DIR/nsys/$SLURM_JOB_ID"
+    mkdir -p "$NSYS_OUTDIR"
+    NSYS_PREFIX="nsys profile -t cuda,nvtx,cudnn,cublas,nccl -s none --cuda-memory-usage=true --capture-range=cudaProfilerApi --capture-range-end=stop --force-overwrite=true -o $NSYS_OUTDIR/node%q{SLURM_NODEID}"
+    PROFILE_ARGS=(--profile --profile-step-start "$PROFILE_STEP_START" --profile-step-end "$PROFILE_STEP_END" --profile-ranks $PROFILE_RANKS)
+    echo "[nsys] traces -> $NSYS_OUTDIR/  (steps $PROFILE_STEP_START..$PROFILE_STEP_END, ranks $PROFILE_RANKS)"
+fi
 MASTER_ADDR=$(hostname)
 MASTER_PORT=25678
 
@@ -356,7 +401,8 @@ TRAINING_CMD="torchrun ${TORCHRUN_ARGS[@]} $MEGATRON_LM_DIR/pretrain_gpt.py \
     ${LOGGING_ARGS[@]} \
     ${CHECKPOINT_ARGS[@]} \
     ${TOKENIZER_ARGS[@]} \
-    ${DATA_ARGS[@]}"
+    ${DATA_ARGS[@]} \
+    ${PROFILE_ARGS[@]}"
 
 TOKENIZER
 
@@ -372,7 +418,7 @@ WANDB_INSERT
 cat >> "$SCRIPT" << 'FOOTER'
 
 echo "CMD: $TRAINING_CMD"
-srun -lu --mpi=pmix --network=disable_rdzv_get --environment=alps3 --cpus-per-task $SLURM_CPUS_PER_TASK --wait 60 bash -c "cd $CORES_DIR && numactl --membind=0-3 $TRAINING_CMD"
+srun -lu --mpi=pmix --network=disable_rdzv_get --environment=alps3 --cpus-per-task $SLURM_CPUS_PER_TASK --wait 60 bash -c "cd $CORES_DIR && numactl --membind=0-3 $NSYS_PREFIX $TRAINING_CMD"
 SRUN_RC=$?
 
 echo "END TIME: $(date)"

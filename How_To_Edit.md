@@ -67,3 +67,23 @@ Full flag list: `python Megatron-LM/megatron/training/arguments.py --help`.
 | Token budget | `TRAINING_STEPS × GBS × SEQ_LEN` |
 | Data ordering | `DATA_ARGS` flags + `megatron/core/datasets/` |
 | Custom loss / reg | patch `pretrain_gpt.py` `loss_func` |
+
+## Profiling (nsys)
+
+```bash
+./launch.sh profile 760m            # 20 steps, captures iters 10-15, all ranks
+./launch.sh profile 760m 30 4       # override [steps] [nodes]
+```
+
+Output: `$LOG_DIR/nsys/$SLURM_JOB_ID/node{0..N-1}.nsys-rep` — one file per node, each containing all 4 local GPUs (nsys follows torchrun's children).
+
+| Step | Command |
+|---|---|
+| Text summary | `nsys stats node0.nsys-rep` |
+| Kernel / memcpy / NCCL breakdown | `nsys stats --report cuda_gpu_kern_sum,cuda_gpu_mem_time_sum,nccl_sum node0.nsys-rep` |
+| Export to SQLite for pandas | `nsys export --type=sqlite -o node0.sqlite node0.nsys-rep` |
+| Open timeline GUI | download `.nsys-rep`, open in Nsight Systems desktop |
+
+Useful SQLite tables: `CUPTI_ACTIVITY_KIND_KERNEL` (compute), `CUPTI_ACTIVITY_KIND_MEMCPY` (H↔D/D↔D), `NVTX_EVENTS` (Megatron's forward/backward/comm ranges).
+
+Knobs in [launch.sh `profile` mode](launch.sh#L62-L77): `PROFILE_STEP_START/END` (default 10-15), `TRAINING_STEPS` (default 20). Profile range must include only steady-state steps — first few iters are compile-heavy and will skew totals.
