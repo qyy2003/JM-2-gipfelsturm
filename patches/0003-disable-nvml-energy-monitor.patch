@@ -1,0 +1,59 @@
+# Patch: Disable NVML energy monitor (segfaults on GH200/ARM64)
+#
+# Problem:
+#   On GH200/ARM64 nodes, every rank crashes with SIGSEGV inside
+#   libnvidia-ml.so.1 the moment Megatron tries to save its first checkpoint.
+#   The crashing call is nvmlDeviceGetTotalEnergyConsumption, invoked from
+#   megatron/core/energy_monitor.py::EnergyMonitor._get_energy, which is in
+#   turn called by EnergyMonitor.pause() at the top of save_checkpoint_and_time
+#   (training.py:2190). The segfault is inside the NVIDIA driver library, not
+#   Python, so the existing `except NVMLError` in _get_energy cannot catch it.
+#
+#   Symptom in the log: training proceeds normally to the first save-interval
+#   boundary (e.g. iter 500), then every rank prints
+#     "Fatal Python error: Segmentation fault"
+#   with a stack ending in
+#     pynvml.nvmlDeviceGetTotalEnergyConsumption
+#     energy_monitor._get_energy
+#     energy_monitor.pause
+#     training.save_checkpoint_and_time
+#   and torchrun reports SIGSEGV (-11) for all local ranks.
+#
+# What this patch does:
+#   Forces `has_nvml = False` in megatron/core/energy_monitor.py after the
+#   pynvml import block. Every method on EnergyMonitor (setup, shutdown,
+#   pause, resume, lap, get_total) is already guarded by `if has_nvml` /
+#   `if not has_nvml`, so flipping this single flag turns the entire energy
+#   monitor into a no-op without touching any call sites in training.py.
+#   energy_monitor.lap() returns 0.0 instead of a real joule count, which is
+#   acceptable: this run does not consume that metric, and avoiding the
+#   crash is worth losing it.
+#
+# Where in the code:
+#   File: megatron/core/energy_monitor.py
+#   Right after the `try: from pynvml import ... has_nvml = True except
+#   ImportError: has_nvml = False` block at module top.
+#
+# How to fix if this patch breaks on a future Megatron version:
+#   If energy_monitor.py is restructured so `has_nvml` is no longer a
+#   module-level flag, find the new gating mechanism (likely an attribute on
+#   EnergyMonitor or a config flag) and disable it the same way. If a CLI
+#   flag like --no-energy-monitor is added upstream, prefer that over a patch.
+#
+# Applied to: Megatron-LM core_v0.16.1
+#
+diff --git a/megatron/core/energy_monitor.py b/megatron/core/energy_monitor.py
+--- a/megatron/core/energy_monitor.py
++++ b/megatron/core/energy_monitor.py
+@@ -17,6 +17,11 @@ try:
+     has_nvml = True
+ except ImportError:
+     has_nvml = False
++
++# GH200/ARM64 workaround: nvmlDeviceGetTotalEnergyConsumption segfaults inside
++# libnvidia-ml.so.1 when called from save_checkpoint_and_time, killing every
++# rank at the first checkpoint save. Disable the energy monitor entirely.
++has_nvml = False
+
+
+ class EnergyMonitor:

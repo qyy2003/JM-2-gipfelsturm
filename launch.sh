@@ -22,6 +22,13 @@ source "$(dirname "$0")/config.sh"
 MODE=${1:?Usage: ./launch.sh <mode> <model_size> [steps] [nodes]}
 MODEL_SIZE=${2:?Usage: ./launch.sh <mode> <model_size> [steps] [nodes]}
 
+# HH:MM:SS -> minutes (rounds seconds up).
+hms_to_mins() {
+    local h m s
+    IFS=: read -r h m s <<< "$1"
+    echo $((10#$h * 60 + 10#$m + (10#$s + 59) / 60))
+}
+
 ################ Mode config ################
 case $MODE in
     throughput)
@@ -33,11 +40,15 @@ case $MODE in
         LR_WARMUP_ITERS=10
         LOGGING_EXTRA=""
         WANDB=true
+        SAVE_INTERVAL=0
+        RESUBMIT=false
+        MAX_RESUBMITS=0
         ;;
     train)
         TRAINING_STEPS=${3:?Usage: ./launch.sh train <model_size> <steps> [nodes]}
         NODES=${4:-4}
-        TIME=02:30:00
+        TIME=00:30:00
+        # TIME=02:30:00
         EVAL_INTERVAL=1000
         EVAL_ITERS=10
         LR_WARMUP_ITERS=200
@@ -46,12 +57,19 @@ case $MODE in
     --log-timers-to-tensorboard
     --log-memory-to-tensorboard"
         WANDB=true
+        SAVE_INTERVAL=500
+        RESUBMIT=true
+        MAX_RESUBMITS=10
         ;;
     *)
         echo "Unknown mode: $MODE. Choose: throughput, train"
         exit 1
         ;;
 esac
+
+# Megatron exits cleanly ~5 min before SLURM kills the job, leaving room
+# to write the final checkpoint and let the script resubmit.
+EXIT_DURATION_MINS=$(( $(hms_to_mins "$TIME") - 5 ))
 
 ################ Model config ################
 case $MODEL_SIZE in
@@ -157,22 +175,41 @@ PROJECT_NAME=gipfelsturm
 EXP_NAME=${MODE}-${MODEL_SIZE}-\${SLURM_NNODES}n
 LOG_DIR=/iopsstor/scratch/cscs/\$USER/gipfelsturm/\$PROJECT_NAME/\$EXP_NAME
 TENSORBOARD_DIR=\$LOG_DIR/tensorboard
+CKPT_DIR=\$LOG_DIR/checkpoints
+CORES_DIR=\$LOG_DIR/cores
+
+# Resubmit knobs (consumed by the resubmit footer below).
+RESUBMIT=${RESUBMIT}
+MAX_RESUBMITS=${MAX_RESUBMITS}
+RESUBMIT_COUNT=\${RESUBMIT_COUNT:-0}
+echo "RESUBMIT_COUNT=\$RESUBMIT_COUNT (max=\$MAX_RESUBMITS)"
 CONFIGS
 
 cat >> "$SCRIPT" << 'SETUP'
 
 #########################################
 
-mkdir -p logs $LOG_DIR $TENSORBOARD_DIR $DATASET_CACHE_DIR
+mkdir -p logs $LOG_DIR $TENSORBOARD_DIR $DATASET_CACHE_DIR $CKPT_DIR $CORES_DIR
 
 cd $MEGATRON_LM_DIR
 flock $MEGATRON_LM_DIR/.git-lock bash -c "cd $MEGATRON_LM_DIR && git checkout -- . && git apply $WORKDIR/patches/*.patch"
+# core_pattern on this cluster is a bare 'core_%h_%p' (no path), so dumps
+# land in the crashing process's cwd. The cgroup/container blocks the actual
+# write, leaving 0-byte litter scattered through the workdir; suppress instead.
+ulimit -c 0
 export PYTHONPATH=$MEGATRON_LM_DIR:$PYTHONPATH
 export CUDA_DEVICE_MAX_CONNECTIONS=1
 export TORCH_NCCL_AVOID_RECORD_STREAMS=1
 export TORCH_NCCL_ASYNC_ERROR_HANDLING=1
 export TRITON_CACHE_DIR=/iopsstor/scratch/cscs/$USER/gipfelsturm/.triton_cache
 export TORCHINDUCTOR_CACHE_DIR=/iopsstor/scratch/cscs/$USER/gipfelsturm/.inductor_cache
+# A crashed prior run can leave Triton cache entries with no 'cubin' artifact,
+# which breaks the next compile with KeyError: "Unknown key: 'cubin'". Wipe on
+# fresh chain start; chained resubmits exit cleanly so their cache is safe.
+if [ "${RESUBMIT_COUNT:-0}" -eq 0 ]; then
+    echo "[cache] fresh chain — wiping Triton/Inductor caches"
+    rm -rf "$TRITON_CACHE_DIR" "$TORCHINDUCTOR_CACHE_DIR"
+fi
 export OMP_NUM_THREADS=$((SLURM_CPUS_PER_TASK/SLURM_GPUS_PER_NODE))
 MASTER_ADDR=$(hostname)
 MASTER_PORT=25678
@@ -265,6 +302,24 @@ ${LOGGING_EXTRA}
 )
 LOGGING_EXTRA
 
+cat >> "$SCRIPT" << CHECKPOINT_ARGS
+SAVE_INTERVAL=${SAVE_INTERVAL}
+EXIT_DURATION_MINS=${EXIT_DURATION_MINS}
+CHECKPOINT_ARGS
+
+cat >> "$SCRIPT" << 'CHECKPOINT_ARGS_BODY'
+CHECKPOINT_ARGS=()
+if [ "$SAVE_INTERVAL" -gt 0 ]; then
+    CHECKPOINT_ARGS=(
+        --save "$CKPT_DIR"
+        --load "$CKPT_DIR"
+        --save-interval "$SAVE_INTERVAL"
+        --ckpt-format torch_dist
+        --exit-duration-in-mins "$EXIT_DURATION_MINS"
+    )
+fi
+CHECKPOINT_ARGS_BODY
+
 cat >> "$SCRIPT" << 'TOKENIZER'
 
 TOKENIZER_ARGS=(
@@ -299,6 +354,7 @@ TRAINING_CMD="torchrun ${TORCHRUN_ARGS[@]} $MEGATRON_LM_DIR/pretrain_gpt.py \
     ${MIXED_PRECISION_ARGS[@]} \
     ${DISTRIBUTED_ARGS[@]} \
     ${LOGGING_ARGS[@]} \
+    ${CHECKPOINT_ARGS[@]} \
     ${TOKENIZER_ARGS[@]} \
     ${DATA_ARGS[@]}"
 
@@ -316,9 +372,40 @@ WANDB_INSERT
 cat >> "$SCRIPT" << 'FOOTER'
 
 echo "CMD: $TRAINING_CMD"
-srun -lu --mpi=pmix --network=disable_rdzv_get --environment=alps3 --cpus-per-task $SLURM_CPUS_PER_TASK --wait 60 bash -c "numactl --membind=0-3 $TRAINING_CMD"
+srun -lu --mpi=pmix --network=disable_rdzv_get --environment=alps3 --cpus-per-task $SLURM_CPUS_PER_TASK --wait 60 bash -c "cd $CORES_DIR && numactl --membind=0-3 $TRAINING_CMD"
+SRUN_RC=$?
 
 echo "END TIME: $(date)"
+echo "srun exit code: $SRUN_RC"
+
+# Auto-resubmit until TRAINING_STEPS reached or MAX_RESUBMITS hit.
+# Only resubmits on clean Megatron exit (rc=0); a crash leaves the chain
+# broken so a real failure does not trigger a runaway loop.
+if [ "$RESUBMIT" = "true" ] && [ "$SRUN_RC" -eq 0 ]; then
+    LATEST=0
+    if [ -f "$CKPT_DIR/latest_checkpointed_iteration.txt" ]; then
+        LATEST=$(cat "$CKPT_DIR/latest_checkpointed_iteration.txt")
+    fi
+    NEXT_COUNT=$((RESUBMIT_COUNT + 1))
+    echo "[resubmit] latest_iter=$LATEST target=$TRAINING_STEPS attempt=$NEXT_COUNT/$MAX_RESUBMITS"
+    if [ "$LATEST" -ge "$TRAINING_STEPS" ]; then
+        echo "[resubmit] training complete, not resubmitting"
+    elif [ "$NEXT_COUNT" -gt "$MAX_RESUBMITS" ]; then
+        echo "[resubmit] hit MAX_RESUBMITS=$MAX_RESUBMITS, not resubmitting"
+    elif [ "$LATEST" -eq 0 ]; then
+        # Megatron exited cleanly without saving any checkpoint. Resubmitting
+        # would just rerun from scratch and likely repeat the same exit.
+        echo "[resubmit] no checkpoint written this run, not resubmitting (manual retry needed)"
+    else
+        echo "[resubmit] sbatch $0 with RESUBMIT_COUNT=$NEXT_COUNT"
+        # --chdir pins WorkDir to $WORKDIR so #SBATCH --output=logs/%x-%j.log
+        # resolves under the project tree, not wherever cwd happens to be when
+        # this footer runs (the script does `cd $MEGATRON_LM_DIR` earlier).
+        sbatch --chdir="$WORKDIR" --export=ALL,RESUBMIT_COUNT=$NEXT_COUNT "$0"
+    fi
+fi
+
+exit $SRUN_RC
 FOOTER
 
 chmod +x "$SCRIPT"
