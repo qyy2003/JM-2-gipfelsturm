@@ -1,44 +1,43 @@
 #!/bin/bash
 #
-# Usage: ./launch.sh <mode> <model_size> [steps] [nodes]
+# Usage: ./launch_moe.sh <mode> [steps] [nodes]
 #
-# Modes:     throughput  (50 steps, with W&B)
-#            train       (N steps, with W&B and Tensorboard)
-#
-# Sizes:     125m, 350m, 760m, 1.5b, 3b, 8b
+# Modes:     throughput  (50 steps, no logging)
+#            train       (N steps, with W&B, Tensorboard, and auto-resubmit)
 #
 # Steps:     required for train mode (e.g., 1000, 5000, 15000)
-# Nodes:     optional, default 4 (max 8)
+# Nodes:     optional, default 8 (32 GPUs total, EP=8, DP=4)
 #
-# Examples:  ./launch.sh throughput 760m
-#            ./launch.sh throughput 8b 50 1
-#            ./launch.sh train 760m 5000
-#            ./launch.sh train 1.5b 3000 8
+# Model:     8B MoE — 32 layers, hidden=4096, 32 heads, 8 experts (top-2),
+#            per-expert FFN=7168, activated params ~= 8B dense
+#
+# Examples:  ./launch_moe.sh throughput
+#            ./launch_moe.sh throughput 50 1
+#            ./launch_moe.sh train 5000
+#            ./launch_moe.sh train 3000 8
 
 set -euo pipefail
 
-source "$(dirname "$0")/config.sh"
-
-MODE=${1:?Usage: ./launch.sh <mode> <model_size> [steps] [nodes]}
-MODEL_SIZE=${2:?Usage: ./launch.sh <mode> <model_size> [steps] [nodes]}
+MODE=${1:?Usage: ./launch_moe.sh <mode> [steps] [nodes]}
 
 ################ Mode config ################
 case $MODE in
     throughput)
-        TRAINING_STEPS=${3:-50}
-        NODES=${4:-4}
+        TRAINING_STEPS=${2:-50}
+        NODES=${3:-8}
         TIME=00:30:00
         EVAL_INTERVAL=$TRAINING_STEPS
         EVAL_ITERS=0
         LR_WARMUP_ITERS=10
         LOGGING_EXTRA=""
-        WANDB=true
-        ;; 
+        WANDB=false
+        SAVE_BLOCK=""
+        ;;
     train)
-        TRAINING_STEPS=${3:?Usage: ./launch.sh train <model_size> <steps> [nodes]}
-        NODES=${4:-4}
+        TRAINING_STEPS=${2:?Usage: ./launch_moe.sh train <steps> [nodes]}
+        NODES=${3:-8}
         TIME=02:30:00
-        EVAL_INTERVAL=100
+        EVAL_INTERVAL=1000
         EVAL_ITERS=10
         LR_WARMUP_ITERS=200
         LOGGING_EXTRA="
@@ -46,6 +45,12 @@ case $MODE in
     --log-timers-to-tensorboard
     --log-memory-to-tensorboard"
         WANDB=true
+        # Megatron native checkpoint + graceful exit on SIGTERM
+        SAVE_BLOCK="
+    --save \$CHECKPOINT_DIR
+    --load \$CHECKPOINT_DIR
+    --save-interval 500
+    --exit-signal-handler"
         ;;
     *)
         echo "Unknown mode: $MODE. Choose: throughput, train"
@@ -53,41 +58,24 @@ case $MODE in
         ;;
 esac
 
-################ Model config ################
-case $MODEL_SIZE in
-    125m)
-        NUM_LAYERS=12;  HIDDEN=768;  FFN=2048;  HEADS=12; KV_HEADS=4
-        MBS=16
-        ;;
-    350m)
-        NUM_LAYERS=24; HIDDEN=1024; FFN=2816;  HEADS=16; KV_HEADS=4
-        MBS=8
-        ;;
-    760m)
-        NUM_LAYERS=24; HIDDEN=1536; FFN=4096;  HEADS=16; KV_HEADS=4
-        MBS=4
-        ;;
-    1.5b)
-        NUM_LAYERS=48; HIDDEN=1600; FFN=4352;  HEADS=20; KV_HEADS=4
-        MBS=4
-        ;;
-    3b)
-        NUM_LAYERS=32; HIDDEN=3072; FFN=8192;  HEADS=24; KV_HEADS=8
-        MBS=4
-        ;;
-    8b)
-        NUM_LAYERS=32; HIDDEN=4096; FFN=14336; HEADS=32; KV_HEADS=8
-        MBS=2
-        ;;
-    *)
-        echo "Unknown model size: $MODEL_SIZE. Choose: 125m, 350m, 760m, 1.5b, 3b, 8b"
-        exit 1
-        ;;
-esac
-
-GBS=512 #256
+# Fixed 8B MoE architecture
+NUM_LAYERS=32
+HIDDEN=4096
+FFN=14336      # base FFN (attention projections use hidden size; MoE layers use moe-ffn-hidden-size)
+HEADS=32
+KV_HEADS=8
+MBS=2
+GBS=256
 SEQ_LEN=4096
-JOB_NAME="gipfel-${MODE}-${MODEL_SIZE}-${TRAINING_STEPS}s-${NODES}n-${GBS}gbs"
+
+# MoE: 8 experts, top-2 routing, per-expert FFN=7168 (half of dense)
+# Total params ~22B; activated params per token ~= 8B dense
+NUM_EXPERTS=8
+MOE_TOP_K=2
+MOE_FFN_HIDDEN=7168
+EXPERT_MP=8    # EP=8 per group; 32 GPUs / EP=8 = DP=4
+
+JOB_NAME="gipfel-${MODE}-8b-moe-${TRAINING_STEPS}s-${NODES}n"
 
 ################ W&B block ################
 if [ "$WANDB" = true ]; then
@@ -117,7 +105,7 @@ cat > "$SCRIPT" << 'HEADER'
 HEADER
 
 cat >> "$SCRIPT" << SBATCH_DIRECTIVES
-#SBATCH --account=${SBATCH_ACCOUNT}
+#SBATCH --account=lsaie-ss26
 #SBATCH --time=${TIME}
 #SBATCH --job-name=${JOB_NAME}
 #SBATCH --output=logs/%x-%j.log
@@ -128,43 +116,37 @@ cat >> "$SCRIPT" << SBATCH_DIRECTIVES
 #SBATCH --cpus-per-task=288
 #SBATCH --mem=460000
 #SBATCH --no-requeue
+#SBATCH --signal=B:TERM@120
 SBATCH_DIRECTIVES
 
-cat >> "$SCRIPT" << 'BODY_HEAD'
+cat >> "$SCRIPT" << 'BODY'
 
-echo "START TIME: \$(date)"
+echo "START TIME: $(date)"
 
-################ Configs ################
-BODY_HEAD
-
-cat >> "$SCRIPT" << BODY_WORKDIR
-WORKDIR=${WORKDIR}
-MEGATRON_LM_DIR=\$WORKDIR/Megatron-LM
+################ Paths ################
+WORKDIR=/users/course_00270/scratch/project/lsaie-ss26-gipfelsturm
+MEGATRON_LM_DIR=$WORKDIR/Megatron-LM
 DATA_PREFIX=/capstor/store/cscs/swissai/infra01/datasets/nvidia/Nemotron-ClimbMix/climbmix_small_megatron/climbmix_small
-DATASET_CACHE_DIR=/iopsstor/scratch/cscs/\$USER/gipfelsturm/cache
-BODY_WORKDIR
+DATASET_CACHE_DIR=/iopsstor/scratch/cscs/$USER/gipfelsturm/cache
+BODY
 
 cat >> "$SCRIPT" << CONFIGS
 
-# Training config
 MBS=${MBS}
 GBS=${GBS}
 SEQ_LEN=${SEQ_LEN}
 TRAINING_STEPS=${TRAINING_STEPS}
 
-# Logging
 PROJECT_NAME=gipfelsturm
-EXP_NAME=${MODE}-${MODEL_SIZE}-\${SLURM_NNODES}n-\${GBS}gbs
+EXP_NAME=${MODE}-8b-moe-\${SLURM_NNODES}n
 LOG_DIR=/iopsstor/scratch/cscs/\$USER/gipfelsturm/\$PROJECT_NAME/\$EXP_NAME
 TENSORBOARD_DIR=\$LOG_DIR/tensorboard
+CHECKPOINT_DIR=\$LOG_DIR/checkpoints
 CONFIGS
 
 cat >> "$SCRIPT" << 'SETUP'
 
-#########################################
-
-ulimit -c 0
-mkdir -p logs $LOG_DIR $TENSORBOARD_DIR $DATASET_CACHE_DIR
+mkdir -p logs $LOG_DIR $TENSORBOARD_DIR $DATASET_CACHE_DIR $CHECKPOINT_DIR
 
 cd $MEGATRON_LM_DIR
 flock $MEGATRON_LM_DIR/.git-lock bash -c "cd $MEGATRON_LM_DIR && git checkout -- . && git apply $WORKDIR/patches/*.patch"
@@ -201,6 +183,17 @@ NETWORK_SIZE_ARGS=(
     --untie-embeddings-and-output-weights
     --seq-length \$SEQ_LEN
 )
+
+MOE_ARGS=(
+    --num-experts ${NUM_EXPERTS}
+    --moe-router-topk ${MOE_TOP_K}
+    --moe-ffn-hidden-size ${MOE_FFN_HIDDEN}
+    --moe-grouped-gemm
+    --moe-token-dispatcher-type alltoall
+    --moe-router-load-balancing-type aux_loss
+    --moe-aux-loss-coeff 1e-2
+    --expert-model-parallel-size ${EXPERT_MP}
+)
 MODEL
 
 cat >> "$SCRIPT" << TRAINING
@@ -232,8 +225,12 @@ REGULARIZATION_ARGS=(
 
 LEARNING_RATE_ARGS=(
     --lr 3e-4
-    --lr-decay-style constant
+    --lr-decay-style cosine
+    --min-lr 3e-5
     --lr-warmup-iters ${LR_WARMUP_ITERS}
+)
+
+SAVE_ARGS=(${SAVE_BLOCK}
 )
 TRAINING
 
@@ -248,6 +245,7 @@ MIXED_PRECISION_ARGS=(
     --bf16
 )
 
+# EP=8, TP=1, PP=1 → DP=32/8=4 across 8 nodes (32 GPUs)
 DISTRIBUTED_ARGS=(
     --tensor-model-parallel-size 1
     --pipeline-model-parallel-size 1
@@ -293,9 +291,11 @@ TORCHRUN_ARGS=(
 TRAINING_CMD="torchrun ${TORCHRUN_ARGS[@]} $MEGATRON_LM_DIR/pretrain_gpt.py \
     ${TRANSFORMER_ENGINE_ARGS[@]} \
     ${NETWORK_SIZE_ARGS[@]} \
+    ${MOE_ARGS[@]} \
     ${TRAINING_ARGS[@]} \
     ${REGULARIZATION_ARGS[@]} \
     ${LEARNING_RATE_ARGS[@]} \
+    ${SAVE_ARGS[@]} \
     ${INITIALIZATION_ARGS[@]} \
     ${MIXED_PRECISION_ARGS[@]} \
     ${DISTRIBUTED_ARGS[@]} \
@@ -308,7 +308,6 @@ TOKENIZER
 cat >> "$SCRIPT" << 'WANDB_PLACEHOLDER'
 WANDB_PLACEHOLDER
 
-# Replace placeholder with actual W&B block
 sed -i '/^WANDB_PLACEHOLDER$/d' "$SCRIPT"
 cat >> "$SCRIPT" << WANDB_INSERT
 ${WANDB_BLOCK}
@@ -318,6 +317,21 @@ cat >> "$SCRIPT" << 'FOOTER'
 
 echo "CMD: $TRAINING_CMD"
 srun -lu --mpi=pmix --network=disable_rdzv_get --environment=alps3 --cpus-per-task $SLURM_CPUS_PER_TASK --wait 60 bash -c "numactl --membind=0-3 $TRAINING_CMD"
+
+EXIT_CODE=$?
+
+# Auto-resubmit: Megatron's --exit-signal-handler catches SIGTERM (sent by SLURM
+# 120s before wall-time), saves a checkpoint, and exits 0. We resubmit if the
+# saved iteration is less than the target training steps.
+if [ $EXIT_CODE -eq 0 ] && [ -f "${CHECKPOINT_DIR}/latest_checkpointed_iteration.txt" ]; then
+    SAVED_ITER=$(cat "${CHECKPOINT_DIR}/latest_checkpointed_iteration.txt" | tr -d '[:space:]')
+    if [ "${SAVED_ITER}" -lt "${TRAINING_STEPS}" ] 2>/dev/null; then
+        echo "[$(date)] Graceful exit at step ${SAVED_ITER}/${TRAINING_STEPS}. Resubmitting..."
+        sbatch "$0"
+    else
+        echo "[$(date)] Training complete at step ${SAVED_ITER}."
+    fi
+fi
 
 echo "END TIME: $(date)"
 FOOTER
