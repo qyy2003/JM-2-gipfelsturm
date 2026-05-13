@@ -1,0 +1,69 @@
+# Patch: Drop bookkeeping keys when loading dp_reshardable optimizer state
+#
+# Problem:
+#   With --use-precision-aware-optimizer + --ckpt-format torch_dist, restarting
+#   from a checkpoint dies on every rank with
+#     File "transformer_engine/pytorch/optimizers/fused_adam.py", line 350,
+#     in set_scaled_state
+#         assert unscaled_state.dtype == torch.float32
+#     AttributeError: 'bool' object has no attribute 'dtype'
+#   raised from
+#     load_parameter_state_from_dp_reshardable
+#       -> _set_main_param_and_optimizer_states
+#         -> optimizer.set_scaled_state(..., k, v)
+#
+#   Root cause is the save/load asymmetry in distrib_optimizer.py.
+#   get_parameter_state_dp_reshardable tags every bucket entry with a
+#   `padding: bool` flag (always present; True for inserted padding, False for
+#   real params) and a `step: int` flag when the optimizer tracks step state
+#   (line ~1657-1668). Both are wrapped in LocalNonpersistentObject so they
+#   round-trip as plain bool/int.
+#
+#   load_parameter_state_from_dp_reshardable filters out padding-only entries
+#   (`if not bucket_state_elem['padding']`) but never pops the 'padding' key
+#   itself, then passes the dict straight into _set_main_param_and_optimizer_
+#   states. With --use-precision-aware-optimizer that loop calls
+#   set_scaled_state for every (k, v) pair — including ('padding', False) —
+#   which trips the dtype assertion inside TE's fused_adam.
+#
+#   The sibling load_parameter_state_from_fs_model_space path already filters
+#   the 'step' key for the same reason (line ~1819-1821); dp_reshardable just
+#   missed both keys.
+#
+# What this patch does:
+#   In load_parameter_state_from_dp_reshardable, strip 'padding' and 'step'
+#   from each bucket entry before handing it to
+#   _set_main_param_and_optimizer_states. Mirrors the existing fs_model_space
+#   filter and matches the save side's wrap-as-LocalNonpersistentObject
+#   contract: those keys are bookkeeping, not tensor state.
+#
+# Where in the code:
+#   File: megatron/core/optimizer/distrib_optimizer.py
+#   Function: DistributedOptimizer.load_parameter_state_from_dp_reshardable()
+#   Inside the inner zip() loop, immediately before the
+#   _set_main_param_and_optimizer_states call.
+#
+# How to fix if this patch breaks on a future Megatron version:
+#   If the save side adds further non-tensor bookkeeping keys (anything
+#   wrapped in LocalNonpersistentObject around line 1657-1668), extend the
+#   skip set here. If upstream pushes the filter into
+#   _set_main_param_and_optimizer_states itself or stops emitting these keys
+#   on save, drop this patch.
+#
+# Applied to: Megatron-LM core_v0.16.1
+#
+diff --git a/megatron/core/optimizer/distrib_optimizer.py b/megatron/core/optimizer/distrib_optimizer.py
+--- a/megatron/core/optimizer/distrib_optimizer.py
++++ b/megatron/core/optimizer/distrib_optimizer.py
+@@ -1800,6 +1800,11 @@ class DistributedOptimizer(MixedPrecisionOptimizer):
+                     for src_tensors, (model_param, param_range_map) in zip(
+                         bucket_state, gbuf_range_map["param_map"].items()
+                     ):
++                        # Drop bookkeeping keys: get_parameter_state_dp_reshardable
++                        # tags every entry with 'padding' (bool) and sometimes
++                        # 'step' (int). _set_main_param_and_optimizer_states
++                        # would otherwise pass them to set_scaled_state and crash.
++                        src_tensors = {k: v for k, v in src_tensors.items() if k not in ('padding', 'step')}
+                         # Main param & optimizer states.
+                         self._set_main_param_and_optimizer_states(model_param, src_tensors)
+

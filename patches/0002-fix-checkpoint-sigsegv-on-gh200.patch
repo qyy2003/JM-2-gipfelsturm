@@ -1,0 +1,173 @@
+# Patch: Work around SIGSEGV in checkpoint saving on GH200/ARM64
+#
+# Problem:
+#   On GH200/ARM64 nodes, distributed checkpoint saves crash intermittently
+#   with SIGSEGV inside torch's zip writer (mz_zip_writer_add_mem_ex_v2 ->
+#   PyTorchStreamWriter::writeRecord -> torch.serialization._save). See
+#   NVIDIA/Megatron-LM#1861. Symptom is the training job dying without a
+#   Python traceback the moment it tries to write the first checkpoint.
+#
+#   Root cause is the multi-process write path in
+#   FileSystemWriterAsync.write_preloaded_data_multiproc: it forks one child
+#   process per write bucket via mp.get_context("fork"). Forking a process
+#   that already holds large CUDA allocations is fragile (copy-on-write
+#   pages backed by device memory, plus interactions with the page-locked
+#   host buffers torch uses for staging) and corrupts memory inside the
+#   child during the zip write. The crash is the symptom; the fork is the
+#   cause. The bug is reachable on both --async-save and the synchronous
+#   path, because both paths go through write_preloaded_data_multiproc.
+#
+# What this patch does:
+#   Replaces the body of write_preloaded_data_multiproc with a serial
+#   in-process loop that calls write_preloaded_data directly for each
+#   bucket. The per-bucket logic, the existing exception handling, and the
+#   shape of the result placed on global_results_queue are all preserved.
+#   No fork, no inter-process queues for the per-bucket workers; plain
+#   queue.Queue is used as a stub so we can keep calling write_preloaded_data
+#   unchanged. The function still puts a Dict[int, List[WriteResult]] (or
+#   an Exception) onto global_results_queue, so the surrounding async-save
+#   plumbing is unaffected.
+#
+#   The trade-off is that each rank now writes its buckets serially.
+#   thread_count defaults to 2, so per-rank checkpoint write time is at
+#   most ~2x the previous parallel path. Total wall-clock time is dominated
+#   by the slowest rank and the device-to-host copy (which already runs
+#   before this function), so the user-visible slowdown is small.
+#
+# Where in the code:
+#   File: megatron/core/dist_checkpointing/strategies/filesystem_async.py
+#   Function: FileSystemWriterAsync.write_preloaded_data_multiproc()
+#   Only the function body is touched; signature and contract are unchanged.
+#   `inspect` and `queue` are already imported at the module level.
+#
+# How to fix if this patch breaks on a future Megatron version:
+#   Find write_preloaded_data_multiproc in filesystem_async.py. If it still
+#   uses mp.get_context("fork") + ctx.Process to fan out per-bucket writes,
+#   replace that fan-out with a serial loop that calls write_preloaded_data
+#   in-process for each bucket and aggregates results into the
+#   global_results_queue Dict. Keep the contract: dict on success, Exception
+#   on failure. If upstream switches to "spawn" or stops forking entirely,
+#   drop this patch.
+#
+# Applied to: Megatron-LM core_v0.16.1
+#
+diff --git a/megatron/core/dist_checkpointing/strategies/filesystem_async.py b/megatron/core/dist_checkpointing/strategies/filesystem_async.py
+index b23c4e989..36a8a66f7 100644
+--- a/megatron/core/dist_checkpointing/strategies/filesystem_async.py
++++ b/megatron/core/dist_checkpointing/strategies/filesystem_async.py
+@@ -260,82 +260,51 @@ class FileSystemWriterAsync(FileSystemWriter):
+                 (or an Exception) from parallel write processes to the main training process
+         Returns: None
+         """
++        # GH200/ARM64 SIGSEGV workaround: write buckets serially in the current
++        # process instead of forking one child per bucket. Forking from a process
++        # with active CUDA allocations crashes intermittently inside torch's zip
++        # writer (mz_zip_writer_add_mem_ex_v2). See NVIDIA/Megatron-LM#1861.
+         logger = logging.getLogger(__name__)
+         w_start = time()
+         write_results_or_exc: Union[dict, Exception] = dict()
+-        ctx = mp.get_context("fork")
+-        local_results_queue = ctx.Queue()
+-        count_queue = ctx.JoinableQueue()
+-        p_list = []
++        local_results_queue: queue.Queue = queue.Queue()
++        count_queue: queue.Queue = queue.Queue()
+         for i, write_bucket in enumerate(write_buckets):
++            count_queue.put(i)
++            kwargs = {
++                "local_proc_idx": i,
++                "write_bucket": write_bucket,
++                "results_queue": local_results_queue,
++                "count_queue": count_queue,
++                "use_fsync": True,
++            }
++            if use_msc:
++                signature = inspect.signature(FileSystemWriterAsync.write_preloaded_data)
++                if len(signature.parameters) > 6:
++                    kwargs["use_msc"] = use_msc
+             try:
+-                count_queue.put(i)
+-
+-                kwargs = {
+-                    "local_proc_idx": i,
+-                    "write_bucket": write_bucket,
+-                    "results_queue": local_results_queue,
+-                    "count_queue": count_queue,
+-                    "use_fsync": True,
+-                }
+-
+-                if use_msc:
+-                    import inspect
+-
+-                    # Remove the inspect after the test_async_save.py is fixed.
+-                    signature = inspect.signature(FileSystemWriterAsync.write_preloaded_data)
+-                    if len(signature.parameters) > 6:
+-                        kwargs["use_msc"] = use_msc
+-
+-                p_list.append(
+-                    ctx.Process(
+-                        target=partial(FileSystemWriterAsync.write_preloaded_data, transform_list),
+-                        kwargs=kwargs,
+-                    )
+-                )
++                FileSystemWriterAsync.write_preloaded_data(transform_list, **kwargs)
++                local_proc_idx, local_results_or_exc = local_results_queue.get_nowait()
+             except Exception as e:
+-                err_msg = f"An error is caught while a proc {i} is created, error: {e}"
++                err_msg = f"Local process {i} encountered an error: {e}"
+                 logger.error(err_msg)
+                 write_results_or_exc = RuntimeError(err_msg)
+-
+-        if not isinstance(write_results_or_exc, Exception):
+-            for p in p_list:
+-                p.start()
+-
+-            logger.debug("FileSystemWriterAsync: collecting worker results...")
+-
+-            # To make sure all nodes are completed
+-            count_queue.join()
+-            # At this point, all workers completed, so the queue should have exactly
+-            # `len(write_buckets)` items
+-            for proc_idx in range(len(write_buckets)):
+-                try:
+-                    local_proc_idx, local_results_or_exc = local_results_queue.get()
+-                except queue.Empty:
+-                    write_results_or_exc = RuntimeError(
+-                        "Unexpected empty `local_results_queue`"
+-                        f" (got only {proc_idx}/{len(write_buckets)} items)"
+-                    )
+-                    break
+-                else:
+-                    if isinstance(local_results_or_exc, Exception):
+-                        err_msg = (
+-                            f"Local process {local_proc_idx} encountered"
+-                            f" an error: {local_results_or_exc}"
+-                        )
+-                        logger.error(err_msg)
+-                        write_results_or_exc = local_results_or_exc
+-                        break
+-                    assert isinstance(local_results_or_exc, list), type(local_results_or_exc)
+-                    write_results_or_exc[local_proc_idx] = local_results_or_exc
+-                    p_list[local_proc_idx].join()
+-
+-            logger.debug("FileSystemWriterAsync: collected worker results successfully")
++                break
++            if isinstance(local_results_or_exc, Exception):
++                err_msg = (
++                    f"Local process {local_proc_idx} encountered"
++                    f" an error: {local_results_or_exc}"
++                )
++                logger.error(err_msg)
++                write_results_or_exc = local_results_or_exc
++                break
++            assert isinstance(local_results_or_exc, list), type(local_results_or_exc)
++            write_results_or_exc[local_proc_idx] = local_results_or_exc
+
+         global_results_queue.put(write_results_or_exc)
+
+         w_end = time()
+-        logger.debug(f"{w_end}, rank: {rank}, write(sync,parallel): {w_end - w_start}")
++        logger.debug(f"{w_end}, rank: {rank}, write(sync,serial): {w_end - w_start}")
+
+     @staticmethod
+     @_disable_gc()
