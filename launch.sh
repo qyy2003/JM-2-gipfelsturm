@@ -97,7 +97,7 @@ case $MODEL_SIZE in
         ;;
     8b)
         NUM_LAYERS=32; HIDDEN=4096; FFN=14336; HEADS=32; KV_HEADS=8
-        MBS=2
+        MBS=4
         ;;
     *)
         echo "Unknown model size: $MODEL_SIZE. Choose: 125m, 350m, 760m, 1.5b, 3b, 8b"
@@ -105,9 +105,12 @@ case $MODEL_SIZE in
         ;;
 esac
 
-GBS=128 #256
+GBS=256
 SEQ_LEN=4096
 ATTENTION_BACKEND=flash
+FP8=true
+TP=1
+PP=1
 
 # Tag attention backend in EXP_NAME. For "flash", distinguish FA3 (installed via
 # build_fa3.sbatch) from the container's bundled FA2 by checking the install dir.
@@ -120,7 +123,13 @@ else
     ATTN_TAG="$ATTENTION_BACKEND"
 fi
 
-EXP_NAME="${MODE}-${MODEL_SIZE}-${TRAINING_STEPS}s-${NODES}n-${GBS}gbs-${MBS}mbs-${ATTN_TAG}"
+if [ "$FP8" = true ]; then
+    PRECISION_TAG="-fp8"
+else
+    PRECISION_TAG=""
+fi
+
+EXP_NAME="${MODE}-${MODEL_SIZE}-${TRAINING_STEPS}s-${NODES}n-${GBS}gbs-${MBS}mbs-${ATTN_TAG}${PRECISION_TAG}-tp${TP}pp${PP}-fsdp"
 JOB_NAME="gipfel-${EXP_NAME}"
 
 ################ W&B block ################
@@ -185,6 +194,8 @@ MBS=${MBS}
 GBS=${GBS}
 SEQ_LEN=${SEQ_LEN}
 TRAINING_STEPS=${TRAINING_STEPS}
+TP=${TP}
+PP=${PP}
 
 # Logging
 PROJECT_NAME=gipfelsturm
@@ -307,6 +318,7 @@ TRAINING_ARGS=(
     --log-interval 1
     --eval-interval ${EVAL_INTERVAL}
     --eval-iters ${EVAL_ITERS}
+    # --cross-entropy-loss-fusion-impl te
     --cross-entropy-loss-fusion
     --disable-bias-linear
     --optimizer adam
@@ -338,17 +350,38 @@ INITIALIZATION_ARGS=(
     --seed 42
     --init-method-std 0.02
 )
+REST
+
+if [ "$FP8" = true ]; then
+    cat >> "$SCRIPT" << 'MIXED_PRECISION'
+
+MIXED_PRECISION_ARGS=(
+    --bf16
+    --fp8-format hybrid
+)
+MIXED_PRECISION
+else
+    cat >> "$SCRIPT" << 'MIXED_PRECISION'
 
 MIXED_PRECISION_ARGS=(
     --bf16
 )
+MIXED_PRECISION
+fi
+
+cat >> "$SCRIPT" << 'REST'
 
 DISTRIBUTED_ARGS=(
-    --tensor-model-parallel-size 1
-    --pipeline-model-parallel-size 1
+    --tensor-model-parallel-size $TP
+    --pipeline-model-parallel-size $PP
     --use-distributed-optimizer
     --overlap-grad-reduce
     --overlap-param-gather
+    # --sequence-parallel
+    --use-megatron-fsdp
+    --data-parallel-sharding-strategy optim_grads_params
+    --ckpt-format fsdp_dtensor
+    --init-model-with-meta-device
 )
 
 LOGGING_ARGS=(

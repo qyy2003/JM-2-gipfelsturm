@@ -2,8 +2,8 @@
 #
 # Usage: ./launch_moe.sh <mode> [steps] [nodes]
 #
-# Modes:     throughput  (50 steps, no logging)
-#            train       (N steps, with W&B, Tensorboard, and auto-resubmit)
+# Modes:     throughput  (50 steps, no resubmit)
+#            train       (N steps, W&B + Tensorboard + auto-resubmit)
 #
 # Steps:     required for train mode (e.g., 1000, 5000, 15000)
 # Nodes:     optional, default 8 (32 GPUs total, EP=8, DP=4)
@@ -18,7 +18,17 @@
 
 set -euo pipefail
 
+# Auto-derive WORKDIR from this script's location so the repo works wherever cloned.
+WORKDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 MODE=${1:?Usage: ./launch_moe.sh <mode> [steps] [nodes]}
+
+# HH:MM:SS -> minutes (rounds seconds up).
+hms_to_mins() {
+    local h m s
+    IFS=: read -r h m s <<< "$1"
+    echo $((10#$h * 60 + 10#$m + (10#$s + 59) / 60))
+}
 
 ################ Mode config ################
 case $MODE in
@@ -29,14 +39,18 @@ case $MODE in
         EVAL_INTERVAL=$TRAINING_STEPS
         EVAL_ITERS=0
         LR_WARMUP_ITERS=10
-        LOGGING_EXTRA=""
-        WANDB=false
-        SAVE_BLOCK=""
+        LOGGING_EXTRA="
+    --log-timers-to-tensorboard"
+        WANDB=true
+        SAVE_INTERVAL=0
+        RESUBMIT=false
+        MAX_RESUBMITS=0
         ;;
     train)
         TRAINING_STEPS=${2:?Usage: ./launch_moe.sh train <steps> [nodes]}
         NODES=${3:-8}
-        TIME=02:30:00
+        TIME=00:30:00
+        # TIME=02:30:00
         EVAL_INTERVAL=1000
         EVAL_ITERS=10
         LR_WARMUP_ITERS=200
@@ -45,18 +59,19 @@ case $MODE in
     --log-timers-to-tensorboard
     --log-memory-to-tensorboard"
         WANDB=true
-        # Megatron native checkpoint + graceful exit on SIGTERM
-        SAVE_BLOCK="
-    --save \$CHECKPOINT_DIR
-    --load \$CHECKPOINT_DIR
-    --save-interval 500
-    --exit-signal-handler"
+        SAVE_INTERVAL=500
+        RESUBMIT=false
+        MAX_RESUBMITS=10
         ;;
     *)
         echo "Unknown mode: $MODE. Choose: throughput, train"
         exit 1
         ;;
 esac
+
+# Megatron exits cleanly ~2 min before SLURM kills the job, leaving room
+# to write the final checkpoint and let the script resubmit.
+EXIT_DURATION_MINS=$(( $(hms_to_mins "$TIME") - 2 ))
 
 # Fixed 8B MoE architecture
 NUM_LAYERS=32
@@ -70,12 +85,35 @@ SEQ_LEN=4096
 
 # MoE: 8 experts, top-2 routing, per-expert FFN=7168 (half of dense)
 # Total params ~22B; activated params per token ~= 8B dense
-NUM_EXPERTS=8
+NUM_EXPERTS=4
 MOE_TOP_K=2
-MOE_FFN_HIDDEN=7168
-EXPERT_MP=8    # EP=8 per group; 32 GPUs / EP=8 = DP=4
+MOE_FFN_HIDDEN=$((7168*2/MOE_TOP_K))   # scale up per-expert FFN to keep activated params constant when changing top-k
+EXPERT_MP=4    # EP=8 per group; 32 GPUs / EP=8 = DP=4
 
-JOB_NAME="gipfel-${MODE}-8b-moe-${TRAINING_STEPS}s-${NODES}n"
+ATTENTION_BACKEND=flash
+FP8=true
+TP=1
+PP=1
+
+# Tag attention backend in EXP_NAME. For "flash", distinguish FA3 (installed via
+# build_fa3.sbatch) from the container's bundled FA2 by checking the install dir.
+FA3_PREFIX="/iopsstor/scratch/cscs/$USER/gipfelsturm/fa3"
+if [ "$ATTENTION_BACKEND" = "flash" ] && [ -d "$FA3_PREFIX/flash_attn_3" ]; then
+    ATTN_TAG="fa3"
+elif [ "$ATTENTION_BACKEND" = "flash" ]; then
+    ATTN_TAG="fa2"
+else
+    ATTN_TAG="$ATTENTION_BACKEND"
+fi
+
+if [ "$FP8" = true ]; then
+    PRECISION_TAG="-fp8"
+else
+    PRECISION_TAG=""
+fi
+
+EXP_NAME="${MODE}-8b-moe-${TRAINING_STEPS}s-${NODES}n-${GBS}gbs-${MBS}mbs-expert${NUM_EXPERTS}-top${MOE_TOP_K}-ep${EXPERT_MP}-${ATTN_TAG}${PRECISION_TAG}-tp${TP}pp${PP}-te"
+JOB_NAME="gipfel-${EXP_NAME}"
 
 ################ W&B block ################
 if [ "$WANDB" = true ]; then
@@ -116,15 +154,20 @@ cat >> "$SCRIPT" << SBATCH_DIRECTIVES
 #SBATCH --cpus-per-task=288
 #SBATCH --mem=460000
 #SBATCH --no-requeue
-#SBATCH --signal=B:TERM@120
 SBATCH_DIRECTIVES
 
-cat >> "$SCRIPT" << 'BODY'
+cat >> "$SCRIPT" << 'BODY_HEAD'
 
 echo "START TIME: $(date)"
 
 ################ Paths ################
-WORKDIR=/users/course_00270/scratch/project/lsaie-ss26-gipfelsturm
+BODY_HEAD
+
+cat >> "$SCRIPT" << BODY_WORKDIR
+WORKDIR=${WORKDIR}
+BODY_WORKDIR
+
+cat >> "$SCRIPT" << 'BODY'
 MEGATRON_LM_DIR=$WORKDIR/Megatron-LM
 DATA_PREFIX=/capstor/store/cscs/swissai/infra01/datasets/nvidia/Nemotron-ClimbMix/climbmix_small_megatron/climbmix_small
 DATASET_CACHE_DIR=/iopsstor/scratch/cscs/$USER/gipfelsturm/cache
@@ -136,37 +179,122 @@ MBS=${MBS}
 GBS=${GBS}
 SEQ_LEN=${SEQ_LEN}
 TRAINING_STEPS=${TRAINING_STEPS}
+TP=${TP}
+PP=${PP}
 
 PROJECT_NAME=gipfelsturm
-EXP_NAME=${MODE}-8b-moe-\${SLURM_NNODES}n
-LOG_DIR=/iopsstor/scratch/cscs/\$USER/gipfelsturm/\$PROJECT_NAME/\$EXP_NAME
+EXP_NAME=${EXP_NAME}
+LOG_DIR=/iopsstor/scratch/cscs/\$USER/gipfelsturm/\$EXP_NAME
 TENSORBOARD_DIR=\$LOG_DIR/tensorboard
-CHECKPOINT_DIR=\$LOG_DIR/checkpoints
+CKPT_DIR=\$LOG_DIR/checkpoints
+CORES_DIR=\$LOG_DIR/cores
+
+# Resubmit knobs (consumed by the resubmit footer below).
+RESUBMIT=${RESUBMIT}
+MAX_RESUBMITS=${MAX_RESUBMITS}
+RESUBMIT_COUNT=\${RESUBMIT_COUNT:-0}
+echo "RESUBMIT_COUNT=\$RESUBMIT_COUNT (max=\$MAX_RESUBMITS)"
 CONFIGS
 
 cat >> "$SCRIPT" << 'SETUP'
 
-mkdir -p logs $LOG_DIR $TENSORBOARD_DIR $DATASET_CACHE_DIR $CHECKPOINT_DIR
+mkdir -p logs $LOG_DIR $TENSORBOARD_DIR $CKPT_DIR $CORES_DIR $DATASET_CACHE_DIR
 
 cd $MEGATRON_LM_DIR
 flock $MEGATRON_LM_DIR/.git-lock bash -c "cd $MEGATRON_LM_DIR && git checkout -- . && git apply $WORKDIR/patches/*.patch"
-export PYTHONPATH=$MEGATRON_LM_DIR:$PYTHONPATH
+# core_pattern on this cluster is a bare 'core_%h_%p' (no path), so dumps
+# land in the crashing process's cwd. The cgroup/container blocks the actual
+# write, leaving 0-byte litter scattered through the workdir; suppress instead.
+ulimit -c 0
+export PYTHONPATH=$MEGATRON_LM_DIR:/iopsstor/scratch/cscs/$USER/gipfelsturm/fa3:$PYTHONPATH
 export CUDA_DEVICE_MAX_CONNECTIONS=1
 export TORCH_NCCL_AVOID_RECORD_STREAMS=1
 export TORCH_NCCL_ASYNC_ERROR_HANDLING=1
+
+# --- NCCL / libfabric debug (cheap; only fires on warnings/errors) ---
+export NCCL_DEBUG=WARN
+export NCCL_DEBUG_SUBSYS=INIT,NET
+export FI_LOG_LEVEL=warn
+
+# --- Slingshot/CXI tuning for MoE (many sub-PGs, many small buffers) ---
+# Larger completion & send queues so MoE all-to-all / aux-loss / ckpt-gather
+# subgroups don't exhaust per-endpoint resources.
+export FI_CXI_DEFAULT_CQ_SIZE=131072
+export FI_CXI_DEFAULT_TX_SIZE=1024
+# Software rx-match is more robust when many endpoints exist concurrently.
+export FI_CXI_RX_MATCH_MODE=software
+# userfaultfd-based MR cache is stable under CUDA + threading; default
+# memhooks monitor is known-buggy on Slingshot with PyTorch.
+export FI_MR_CACHE_MONITOR=userfaultfd
+# Allow GPUDirect RDMA across PCIe Host Bridge so NCCL doesn't fall back
+# to CPU bounce buffers on cross-NUMA paths.
+export NCCL_NET_GDR_LEVEL=PHB
+
+# Reduce CUDA allocator fragmentation by using virtual-memory-backed
+# expandable segments (cuMemMap). Helps when large transient buffers
+# (fp32 logits, inductor temporaries) can't find contiguous space.
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
 export TRITON_CACHE_DIR=/iopsstor/scratch/cscs/$USER/gipfelsturm/.triton_cache
 export TORCHINDUCTOR_CACHE_DIR=/iopsstor/scratch/cscs/$USER/gipfelsturm/.inductor_cache
+# A crashed prior run can leave Triton cache entries with no 'cubin' artifact,
+# which breaks the next compile with KeyError: "Unknown key: 'cubin'". Wipe on
+# fresh chain start; chained resubmits exit cleanly so their cache is safe.
+if [ "${RESUBMIT_COUNT:-0}" -eq 0 ]; then
+    echo "[cache] fresh chain — wiping Triton/Inductor caches"
+    rm -rf "$TRITON_CACHE_DIR" "$TORCHINDUCTOR_CACHE_DIR"
+fi
 export OMP_NUM_THREADS=$((SLURM_CPUS_PER_TASK/SLURM_GPUS_PER_NODE))
 MASTER_ADDR=$(hostname)
 MASTER_PORT=25678
 
+# Write a probe script that runs inside the main srun's container (rank 0 only).
+# Cannot use a separate srun step here — pyxis/enroot rejects spawning a second
+# container in the same job step.
+PROBE_SCRIPT=$LOG_DIR/probe_versions.py
+cat > $PROBE_SCRIPT << 'PROBE_EOF'
+try:
+    import importlib.metadata as md
+except ImportError:
+    md = None
+
+try:
+    import transformer_engine
+    print(f'[probe][te] TransformerEngine: v{transformer_engine.__version__}')
+except Exception as e:
+    print(f'[probe][te] not found: {e}')
+
+found = False
+if md is not None:
+    for pkg in ['flash-attn', 'flash-attn-3', 'flashattn-hopper']:
+        try:
+            print(f'[probe][attn] {pkg}: v{md.version(pkg)}')
+            found = True
+        except md.PackageNotFoundError:
+            pass
+
+for mod in ['flash_attn_3', 'flashattn_hopper', 'flash_attn']:
+    try:
+        m = __import__(mod)
+        print(f'[probe][attn] import {mod}: v{getattr(m, "__version__", "unknown")}')
+        found = True
+    except ImportError:
+        pass
+
+if not found:
+    print('[probe][attn] No FlashAttention python package found')
+PROBE_EOF
+
+SETUP
+
+cat >> "$SCRIPT" << TRANSFORMER_ENGINE_BLOCK
 TRANSFORMER_ENGINE_ARGS=(
     --transformer-impl transformer_engine
     --use-precision-aware-optimizer
     --main-grads-dtype bf16
+    --attention-backend ${ATTENTION_BACKEND}
 )
-
-SETUP
+TRANSFORMER_ENGINE_BLOCK
 
 cat >> "$SCRIPT" << MODEL
 NETWORK_SIZE_ARGS=(
@@ -193,6 +321,7 @@ MOE_ARGS=(
     --moe-router-load-balancing-type aux_loss
     --moe-aux-loss-coeff 1e-2
     --expert-model-parallel-size ${EXPERT_MP}
+    # --moe-router-pre-softmax
 )
 MODEL
 
@@ -206,6 +335,7 @@ TRAINING_ARGS=(
     --eval-interval ${EVAL_INTERVAL}
     --eval-iters ${EVAL_ITERS}
     --cross-entropy-loss-fusion
+    --cross-entropy-fusion-impl te
     --disable-bias-linear
     --optimizer adam
     --dataloader-type single
@@ -229,9 +359,6 @@ LEARNING_RATE_ARGS=(
     --min-lr 3e-5
     --lr-warmup-iters ${LR_WARMUP_ITERS}
 )
-
-SAVE_ARGS=(${SAVE_BLOCK}
-)
 TRAINING
 
 cat >> "$SCRIPT" << 'REST'
@@ -240,18 +367,37 @@ INITIALIZATION_ARGS=(
     --seed 42
     --init-method-std 0.02
 )
+REST
+
+if [ "$FP8" = true ]; then
+    cat >> "$SCRIPT" << 'MIXED_PRECISION'
+
+MIXED_PRECISION_ARGS=(
+    --bf16
+    --fp8-format hybrid
+)
+MIXED_PRECISION
+else
+    cat >> "$SCRIPT" << 'MIXED_PRECISION'
 
 MIXED_PRECISION_ARGS=(
     --bf16
 )
+MIXED_PRECISION
+fi
 
-# EP=8, TP=1, PP=1 → DP=32/8=4 across 8 nodes (32 GPUs)
+cat >> "$SCRIPT" << 'REST'
+
 DISTRIBUTED_ARGS=(
-    --tensor-model-parallel-size 1
-    --pipeline-model-parallel-size 1
+    --tensor-model-parallel-size $TP
+    --pipeline-model-parallel-size $PP
     --use-distributed-optimizer
     --overlap-grad-reduce
     --overlap-param-gather
+    # --use-megatron-fsdp
+    # --data-parallel-sharding-strategy optim_grads_params
+    # --ckpt-format fsdp_dtensor
+    # --init-model-with-meta-device
 )
 
 LOGGING_ARGS=(
@@ -263,6 +409,24 @@ cat >> "$SCRIPT" << LOGGING_EXTRA
 ${LOGGING_EXTRA}
 )
 LOGGING_EXTRA
+
+cat >> "$SCRIPT" << CHECKPOINT_ARGS
+SAVE_INTERVAL=${SAVE_INTERVAL}
+EXIT_DURATION_MINS=${EXIT_DURATION_MINS}
+CHECKPOINT_ARGS
+
+cat >> "$SCRIPT" << 'CHECKPOINT_ARGS_BODY'
+CHECKPOINT_ARGS=()
+if [ "$SAVE_INTERVAL" -gt 0 ]; then
+    CHECKPOINT_ARGS=(
+        --save "$CKPT_DIR"
+        --load "$CKPT_DIR"
+        --save-interval "$SAVE_INTERVAL"
+        --ckpt-format torch_dist
+        --exit-duration-in-mins "$EXIT_DURATION_MINS"
+    )
+fi
+CHECKPOINT_ARGS_BODY
 
 cat >> "$SCRIPT" << 'TOKENIZER'
 
@@ -295,11 +459,11 @@ TRAINING_CMD="torchrun ${TORCHRUN_ARGS[@]} $MEGATRON_LM_DIR/pretrain_gpt.py \
     ${TRAINING_ARGS[@]} \
     ${REGULARIZATION_ARGS[@]} \
     ${LEARNING_RATE_ARGS[@]} \
-    ${SAVE_ARGS[@]} \
     ${INITIALIZATION_ARGS[@]} \
     ${MIXED_PRECISION_ARGS[@]} \
     ${DISTRIBUTED_ARGS[@]} \
     ${LOGGING_ARGS[@]} \
+    ${CHECKPOINT_ARGS[@]} \
     ${TOKENIZER_ARGS[@]} \
     ${DATA_ARGS[@]}"
 
@@ -316,24 +480,37 @@ WANDB_INSERT
 cat >> "$SCRIPT" << 'FOOTER'
 
 echo "CMD: $TRAINING_CMD"
-srun -lu --mpi=pmix --network=disable_rdzv_get --environment=alps3 --cpus-per-task $SLURM_CPUS_PER_TASK --wait 60 bash -c "numactl --membind=0-3 $TRAINING_CMD"
+srun -lu --mpi=pmix --network=disable_rdzv_get --environment=alps3 --cpus-per-task $SLURM_CPUS_PER_TASK --wait 60 bash -c "cd $CORES_DIR && if [ \$SLURM_PROCID -eq 0 ]; then python3 $PROBE_SCRIPT || echo '[probe] failed (continuing)'; fi && numactl --membind=0-3 $TRAINING_CMD"
+SRUN_RC=$?
 
-EXIT_CODE=$?
+echo "END TIME: $(date)"
+echo "srun exit code: $SRUN_RC"
 
-# Auto-resubmit: Megatron's --exit-signal-handler catches SIGTERM (sent by SLURM
-# 120s before wall-time), saves a checkpoint, and exits 0. We resubmit if the
-# saved iteration is less than the target training steps.
-if [ $EXIT_CODE -eq 0 ] && [ -f "${CHECKPOINT_DIR}/latest_checkpointed_iteration.txt" ]; then
-    SAVED_ITER=$(cat "${CHECKPOINT_DIR}/latest_checkpointed_iteration.txt" | tr -d '[:space:]')
-    if [ "${SAVED_ITER}" -lt "${TRAINING_STEPS}" ] 2>/dev/null; then
-        echo "[$(date)] Graceful exit at step ${SAVED_ITER}/${TRAINING_STEPS}. Resubmitting..."
-        sbatch "$0"
+# Auto-resubmit until TRAINING_STEPS reached or MAX_RESUBMITS hit.
+# Only resubmits on clean Megatron exit (rc=0); a crash leaves the chain
+# broken so a real failure does not trigger a runaway loop.
+if [ "$RESUBMIT" = "true" ] && [ "$SRUN_RC" -eq 0 ]; then
+    LATEST=0
+    if [ -f "$CKPT_DIR/latest_checkpointed_iteration.txt" ]; then
+        LATEST=$(cat "$CKPT_DIR/latest_checkpointed_iteration.txt")
+    fi
+    NEXT_COUNT=$((RESUBMIT_COUNT + 1))
+    echo "[resubmit] latest_iter=$LATEST target=$TRAINING_STEPS attempt=$NEXT_COUNT/$MAX_RESUBMITS"
+    if [ "$LATEST" -ge "$TRAINING_STEPS" ]; then
+        echo "[resubmit] training complete, not resubmitting"
+    elif [ "$NEXT_COUNT" -gt "$MAX_RESUBMITS" ]; then
+        echo "[resubmit] hit MAX_RESUBMITS=$MAX_RESUBMITS, not resubmitting"
+    elif [ "$LATEST" -eq 0 ]; then
+        # Megatron exited cleanly without saving any checkpoint. Resubmitting
+        # would just rerun from scratch and likely repeat the same exit.
+        echo "[resubmit] no checkpoint written this run, not resubmitting (manual retry needed)"
     else
-        echo "[$(date)] Training complete at step ${SAVED_ITER}."
+        echo "[resubmit] sbatch $0 with RESUBMIT_COUNT=$NEXT_COUNT"
+        sbatch --chdir="$WORKDIR" --export=ALL,RESUBMIT_COUNT=$NEXT_COUNT "$0"
     fi
 fi
 
-echo "END TIME: $(date)"
+exit $SRUN_RC
 FOOTER
 
 chmod +x "$SCRIPT"

@@ -2,3 +2,4 @@ logs/
 data/climbmix_small/
 config.sh
 patches/1000-cache.patch
+core_*

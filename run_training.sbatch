@@ -16,7 +16,7 @@ set -eo pipefail
 mkdir -p logs
 
 # ── Edit these ───────────────────────────────────────────────────────────────
-WORKDIR="/iopsstor/scratch/cscs/$USER/project/lsaie-ss26-gipfelsturm"
+WORKDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MEGATRON_LM_DIR="$WORKDIR/Megatron-LM"
 CHECKPOINT_DIR="/iopsstor/scratch/cscs/$USER/checkpoints/megatron-gpt-8b"
 TENSORBOARD_DIR="/iopsstor/scratch/cscs/$USER/logs/megatron-gpt-8b/tensorboard"
