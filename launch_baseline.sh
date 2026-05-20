@@ -48,8 +48,8 @@ case $MODE in
     train)
         TRAINING_STEPS=${3:?Usage: ./launch.sh train <model_size> <steps> [nodes]}
         NODES=${4:-4}
-        TIME=00:30:00
-        # TIME=02:30:00
+        # TIME=00:30:00
+        TIME=02:30:00
         EVAL_INTERVAL=1000
         EVAL_ITERS=10
         LR_WARMUP_ITERS=200
@@ -97,7 +97,7 @@ case $MODEL_SIZE in
         ;;
     8b)
         NUM_LAYERS=32; HIDDEN=4096; FFN=14336; HEADS=32; KV_HEADS=8
-        MBS=4
+        MBS=1
         ;;
     *)
         echo "Unknown model size: $MODEL_SIZE. Choose: 125m, 350m, 760m, 1.5b, 3b, 8b"
@@ -107,29 +107,12 @@ esac
 
 GBS=256
 SEQ_LEN=4096
-ATTENTION_BACKEND=flash
-FP8=true
+ATTENTION_BACKEND=unfused
+FP8=false
 TP=1
 PP=1
 
-# Tag attention backend in EXP_NAME. For "flash", distinguish FA3 (installed via
-# build_fa3.sbatch) from the container's bundled FA2 by checking the install dir.
-FA3_PREFIX="/iopsstor/scratch/cscs/$USER/gipfelsturm/fa3"
-if [ "$ATTENTION_BACKEND" = "flash" ] && [ -d "$FA3_PREFIX/flash_attn_3" ]; then
-    ATTN_TAG="fa3"
-elif [ "$ATTENTION_BACKEND" = "flash" ]; then
-    ATTN_TAG="fa2"
-else
-    ATTN_TAG="$ATTENTION_BACKEND"
-fi
-
-if [ "$FP8" = true ]; then
-    PRECISION_TAG="-fp8"
-else
-    PRECISION_TAG=""
-fi
-
-EXP_NAME="${MODE}-${MODEL_SIZE}-${TRAINING_STEPS}s-${NODES}n-${GBS}gbs-${MBS}mbs-${ATTN_TAG}${PRECISION_TAG}-tp${TP}pp${PP}"
+EXP_NAME="${MODE}-${MODEL_SIZE}-${TRAINING_STEPS}s-${NODES}n-${GBS}gbs-${MBS}mbs-baseline-tp${TP}pp${PP}"
 JOB_NAME="gipfel-${EXP_NAME}"
 
 ################ W&B block ################
@@ -224,7 +207,7 @@ flock $MEGATRON_LM_DIR/.git-lock bash -c "cd $MEGATRON_LM_DIR && git checkout --
 # land in the crashing process's cwd. The cgroup/container blocks the actual
 # write, leaving 0-byte litter scattered through the workdir; suppress instead.
 ulimit -c 0
-export PYTHONPATH=$MEGATRON_LM_DIR:/iopsstor/scratch/cscs/$USER/gipfelsturm/fa3:$PYTHONPATH
+export PYTHONPATH=$MEGATRON_LM_DIR:$PYTHONPATH
 # export NVTE_DEBUG=1
 # export NVTE_DEBUG_LEVEL=2
 export CUDA_DEVICE_MAX_CONNECTIONS=1
@@ -286,8 +269,6 @@ SETUP
 cat >> "$SCRIPT" << TRANSFORMER_ENGINE_BLOCK
 TRANSFORMER_ENGINE_ARGS=(
     --transformer-impl transformer_engine
-    --use-precision-aware-optimizer
-    --main-grads-dtype bf16
     --attention-backend ${ATTENTION_BACKEND}
 )
 TRANSFORMER_ENGINE_BLOCK
@@ -318,14 +299,9 @@ TRAINING_ARGS=(
     --log-interval 1
     --eval-interval ${EVAL_INTERVAL}
     --eval-iters ${EVAL_ITERS}
-    # --cross-entropy-loss-fusion-impl te
-    --cross-entropy-loss-fusion
     --disable-bias-linear
     --optimizer adam
     --dataloader-type single
-    --no-check-for-nan-in-loss-and-grad
-    --manual-gc
-    --manual-gc-interval 50
 )
 
 REGULARIZATION_ARGS=(
@@ -374,14 +350,6 @@ cat >> "$SCRIPT" << 'REST'
 DISTRIBUTED_ARGS=(
     --tensor-model-parallel-size $TP
     --pipeline-model-parallel-size $PP
-    --use-distributed-optimizer
-    --overlap-grad-reduce
-    --overlap-param-gather
-    # --sequence-parallel
-    # --use-megatron-fsdp
-    # --data-parallel-sharding-strategy optim_grads_params
-    # --ckpt-format fsdp_dtensor
-    # --init-model-with-meta-device
 )
 
 LOGGING_ARGS=(
