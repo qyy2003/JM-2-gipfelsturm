@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Usage: ./launch.sh <mode> <model_size> [steps] [nodes]
+# Usage: ./launch.sh <mode> <model_size> [steps] [nodes] [dp_backend]
 #
 # Modes:     throughput  (50 steps, with W&B)
 #            train       (N steps, with W&B and Tensorboard)
@@ -10,17 +10,21 @@
 # Steps:     required for train mode (e.g., 1000, 5000, 15000)
 # Nodes:     optional, default 4 (max 8)
 #
+# Backends:  megatron  Megatron distributed optimizer + overlap flags
+#            ddp       Plain replicated data parallel ablation
+#            fsdp      Megatron FSDP sharding
+#
 # Examples:  ./launch.sh throughput 760m
-#            ./launch.sh throughput 8b 50 1
-#            ./launch.sh train 760m 5000
-#            ./launch.sh train 1.5b 3000 8
+#            ./launch.sh throughput 8b 50 1 megatron
+#            ./launch.sh throughput 125m 10 1 ddp
+#            ./launch.sh train 1.5b 3000 8 fsdp
 
 set -euo pipefail
 
 source "$(dirname "$0")/config.sh"
 
-MODE=${1:?Usage: ./launch.sh <mode> <model_size> [steps] [nodes]}
-MODEL_SIZE=${2:?Usage: ./launch.sh <mode> <model_size> [steps] [nodes]}
+MODE=${1:?Usage: ./launch.sh <mode> <model_size> [steps] [nodes] [dp_backend]}
+MODEL_SIZE=${2:?Usage: ./launch.sh <mode> <model_size> [steps] [nodes] [dp_backend]}
 
 # HH:MM:SS -> minutes (rounds seconds up).
 hms_to_mins() {
@@ -34,6 +38,7 @@ case $MODE in
     throughput)
         TRAINING_STEPS=${3:-50}
         NODES=${4:-4}
+        DP_BACKEND=${5:-${DP_BACKEND:-megatron}}
         TIME=00:30:00
         EVAL_INTERVAL=$TRAINING_STEPS
         EVAL_ITERS=0
@@ -46,8 +51,9 @@ case $MODE in
         MAX_RESUBMITS=0
         ;;
     train)
-        TRAINING_STEPS=${3:?Usage: ./launch.sh train <model_size> <steps> [nodes]}
+        TRAINING_STEPS=${3:?Usage: ./launch.sh train <model_size> <steps> [nodes] [dp_backend]}
         NODES=${4:-4}
+        DP_BACKEND=${5:-${DP_BACKEND:-megatron}}
         TIME=00:30:00
         # TIME=02:30:00
         EVAL_INTERVAL=1000
@@ -67,6 +73,25 @@ case $MODE in
         exit 1
         ;;
 esac
+
+case $DP_BACKEND in
+    megatron|ddp|fsdp)
+        ;;
+    deepspeed_zero1|deepspeed_zero2|deepspeed_zero3)
+        echo "DeepSpeed backend '$DP_BACKEND' is reserved for a separate harness; this Megatron launcher supports: megatron, ddp, fsdp." >&2
+        exit 2
+        ;;
+    *)
+        echo "Unknown dp_backend: $DP_BACKEND. Choose: megatron, ddp, fsdp." >&2
+        exit 1
+        ;;
+esac
+
+if [ "$DP_BACKEND" = fsdp ]; then
+    CKPT_FORMAT=${CKPT_FORMAT:-fsdp_dtensor}
+else
+    CKPT_FORMAT=${CKPT_FORMAT:-torch_dist}
+fi
 
 # Megatron exits cleanly ~5 min before SLURM kills the job, leaving room
 # to write the final checkpoint and let the script resubmit.
@@ -105,12 +130,13 @@ case $MODEL_SIZE in
         ;;
 esac
 
-GBS=256
-SEQ_LEN=4096
-ATTENTION_BACKEND=flash
-FP8=true
-TP=1
-PP=1
+MBS=${MBS_OVERRIDE:-$MBS}
+GBS=${GBS:-256}
+SEQ_LEN=${SEQ_LEN:-4096}
+ATTENTION_BACKEND=${ATTENTION_BACKEND:-flash}
+FP8=${FP8:-true}
+TP=${TP:-1}
+PP=${PP:-1}
 
 # Tag attention backend in EXP_NAME. For "flash", distinguish FA3 (installed via
 # build_fa3.sbatch) from the container's bundled FA2 by checking the install dir.
@@ -129,7 +155,7 @@ else
     PRECISION_TAG=""
 fi
 
-EXP_NAME="${MODE}-${MODEL_SIZE}-${TRAINING_STEPS}s-${NODES}n-${GBS}gbs-${MBS}mbs-${ATTN_TAG}${PRECISION_TAG}-tp${TP}pp${PP}"
+EXP_NAME="${MODE}-${MODEL_SIZE}-${DP_BACKEND}-${TRAINING_STEPS}s-${NODES}n-${GBS}gbs-${MBS}mbs-${ATTN_TAG}${PRECISION_TAG}-tp${TP}pp${PP}"
 JOB_NAME="gipfel-${EXP_NAME}"
 
 ################ W&B block ################
@@ -194,8 +220,13 @@ MBS=${MBS}
 GBS=${GBS}
 SEQ_LEN=${SEQ_LEN}
 TRAINING_STEPS=${TRAINING_STEPS}
+MODEL_SIZE=${MODEL_SIZE}
 TP=${TP}
 PP=${PP}
+DP_BACKEND=${DP_BACKEND}
+ATTENTION_BACKEND=${ATTENTION_BACKEND}
+FP8=${FP8}
+CKPT_FORMAT=${CKPT_FORMAT}
 
 # Logging
 PROJECT_NAME=gipfelsturm
@@ -278,6 +309,12 @@ for mod in ['flash_attn_3', 'flashattn_hopper', 'flash_attn']:
 
 if not found:
     print('[probe][attn] No FlashAttention python package found')
+
+try:
+    import deepspeed
+    print(f'[probe][deepspeed] v{deepspeed.__version__}')
+except Exception as e:
+    print(f'[probe][deepspeed] not found: {e}')
 PROBE_EOF
 
 
@@ -371,18 +408,40 @@ fi
 
 cat >> "$SCRIPT" << 'REST'
 
-DISTRIBUTED_ARGS=(
+COMMON_DISTRIBUTED_ARGS=(
     --tensor-model-parallel-size $TP
     --pipeline-model-parallel-size $PP
-    --use-distributed-optimizer
-    --overlap-grad-reduce
-    --overlap-param-gather
-    # --sequence-parallel
-    # --use-megatron-fsdp
-    # --data-parallel-sharding-strategy optim_grads_params
-    # --ckpt-format fsdp_dtensor
-    # --init-model-with-meta-device
 )
+
+case "$DP_BACKEND" in
+    megatron)
+        DISTRIBUTED_ARGS=(
+            "${COMMON_DISTRIBUTED_ARGS[@]}"
+            --use-distributed-optimizer
+            --overlap-grad-reduce
+            --overlap-param-gather
+        )
+        ;;
+    ddp)
+        DISTRIBUTED_ARGS=(
+            "${COMMON_DISTRIBUTED_ARGS[@]}"
+        )
+        ;;
+    fsdp)
+        DISTRIBUTED_ARGS=(
+            "${COMMON_DISTRIBUTED_ARGS[@]}"
+            --use-megatron-fsdp
+            --data-parallel-sharding-strategy optim_grads_params
+        )
+        ;;
+    *)
+        echo "Unsupported DP_BACKEND=$DP_BACKEND" >&2
+        exit 2
+        ;;
+esac
+
+echo "Experiment backend: $DP_BACKEND"
+echo "Experiment shape: model=$MODEL_SIZE steps=$TRAINING_STEPS nodes=$SLURM_NNODES gpus_per_node=$SLURM_GPUS_PER_NODE mbs=$MBS gbs=$GBS seq_len=$SEQ_LEN tp=$TP pp=$PP fp8=$FP8 attention=$ATTENTION_BACKEND"
 
 LOGGING_ARGS=(
     --log-throughput
@@ -406,7 +465,7 @@ if [ "$SAVE_INTERVAL" -gt 0 ]; then
         --save "$CKPT_DIR"
         --load "$CKPT_DIR"
         --save-interval "$SAVE_INTERVAL"
-        --ckpt-format torch_dist
+        --ckpt-format "$CKPT_FORMAT"
         --exit-duration-in-mins "$EXIT_DURATION_MINS"
     )
 fi

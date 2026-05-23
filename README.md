@@ -106,13 +106,14 @@ We use the GPT-2 BPE tokenizer (`data/gpt2-vocab.json`, `data/gpt2-merges.txt`) 
 
 Training runs on the [Swiss AI Initiative's](https://swiss-ai.org) partition on Alps called Clariden, which uses SLURM.
 
-All training is launched via `launch.sh <mode> <model_size> [steps] [nodes]`. The launcher generates a self-contained SLURM script in `logs/` for reproducibility and submits it. Model sizes: 125m, 350m, 760m, 1.5b, 3b, 8b. Nodes default to 4 (max 8).
+All training is launched via `launch.sh <mode> <model_size> [steps] [nodes] [dp_backend]`. The launcher generates a self-contained SLURM script in `logs/` for reproducibility and submits it. Model sizes: 125m, 350m, 760m, 1.5b, 3b, 8b. Nodes default to 4 (max 8). Data-parallel backends are `megatron` (strong baseline), `ddp` (replicated data-parallel ablation), and `fsdp` (Megatron FSDP).
 
 **Throughput** mode runs 50 steps (by default) to measure tokens/sec/GPU:
 
 ```bash
 ./launch.sh throughput 760m           # 50 steps, 4 nodes
 ./launch.sh throughput 8b 50 1        # 50 steps, 1 node
+./launch.sh throughput 125m 10 1 ddp  # smoke-test the DDP ablation
 ```
 
 **Train** mode runs a specified number of steps with W&B and Tensorboard logging:
@@ -120,6 +121,13 @@ All training is launched via `launch.sh <mode> <model_size> [steps] [nodes]`. Th
 ```bash
 ./launch.sh train 760m 5000           # 5000 steps, 4 nodes
 ./launch.sh train 1.5b 3000 8         # 3000 steps, 8 nodes
+```
+
+**DP backend sweep** submits a clean comparison matrix to W&B:
+
+```bash
+./experiments/submit_dp_backend_sweep.sh smoke  # 125m, 10 steps, 1 node
+./experiments/submit_dp_backend_sweep.sh good   # 1.5b, 50 steps, 1 node
 ```
 
 **Single-GPU throughput baselines** (50 steps, SEQ_LEN=4096, TP=1, PP=1):
