@@ -290,6 +290,7 @@ def main() -> None:
                     {
                         "iteration": iteration,
                         "iteration-time": step_time,
+                        "tokens_per_sec_per_gpu": toks_per_sec_gpu,
                         "tokens/sec/GPU": toks_per_sec_gpu,
                         "lm loss": avg_loss,
                         "max_memory_gb": max_mem_gb,
