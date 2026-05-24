@@ -346,13 +346,6 @@ OPTIMIZER_PRECISION_ARGS=(
     --main-grads-dtype bf16
 )
 OPTIMIZER_PRECISION
-elif [ "$DP_BACKEND" = fsdp ]; then
-    cat >> "$SCRIPT" << 'OPTIMIZER_PRECISION'
-
-OPTIMIZER_PRECISION_ARGS=(
-    --main-grads-dtype bf16
-)
-OPTIMIZER_PRECISION
 else
     cat >> "$SCRIPT" << 'OPTIMIZER_PRECISION'
 
@@ -411,6 +404,20 @@ LEARNING_RATE_ARGS=(
     --lr-warmup-iters ${LR_WARMUP_ITERS}
 )
 TRAINING
+
+if [ "$DP_BACKEND" = fsdp ]; then
+    cat >> "$SCRIPT" << 'TRAINING_COMPAT'
+
+TRAINING_COMPAT_ARGS=(
+    --no-gradient-accumulation-fusion
+)
+TRAINING_COMPAT
+else
+    cat >> "$SCRIPT" << 'TRAINING_COMPAT'
+
+TRAINING_COMPAT_ARGS=()
+TRAINING_COMPAT
+fi
 
 cat >> "$SCRIPT" << 'REST'
 
@@ -534,6 +541,7 @@ TRAINING_CMD="torchrun ${TORCHRUN_ARGS[@]} $MEGATRON_LM_DIR/pretrain_gpt.py \
     ${OPTIMIZER_PRECISION_ARGS[@]} \
     ${NETWORK_SIZE_ARGS[@]} \
     ${TRAINING_ARGS[@]} \
+    ${TRAINING_COMPAT_ARGS[@]} \
     ${REGULARIZATION_ARGS[@]} \
     ${LEARNING_RATE_ARGS[@]} \
     ${INITIALIZATION_ARGS[@]} \
