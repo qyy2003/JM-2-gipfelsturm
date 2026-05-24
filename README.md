@@ -131,6 +131,13 @@ All training is launched via `launch.sh <mode> <model_size> [steps] [nodes] [dp_
 ./experiments/submit_dp_backend_sweep.sh good   # 1.5b, 200 steps, 1 node, 30 min
 ```
 
+**DeepSpeed ZeRO sweep** uses a separate GPT-like benchmark harness:
+
+```bash
+./experiments/submit_deepspeed_sweep.sh smoke  # 125m, ZeRO-1/2/3, 5 min
+./experiments/submit_deepspeed_sweep.sh good   # 1.5b, ZeRO-1/2/3, 30 min
+```
+
 **Single-GPU throughput baselines** (50 steps, SEQ_LEN=4096, TP=1, PP=1):
 
 | Model | MBS | tok/s/GPU |

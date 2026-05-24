@@ -43,7 +43,7 @@ case "$PHASE" in
         submit_matrix "${GOOD_MODEL:-1.5b}" "${GOOD_STEPS:-200}" "${GOOD_NODES:-1}" "${GOOD_WALLTIME:-00:30:00}"
         ;;
     all)
-        submit_matrix "${SMOKE_MODEL:-125m}" "${SMOKE_STEPS:-20}" "${SMOKE_NODES:-1}" "${SMOKE_WALLTIME:-00:10:00}"
+        submit_matrix "${SMOKE_MODEL:-125m}" "${SMOKE_STEPS:-20}" "${SMOKE_NODES:-1}" "${SMOKE_WALLTIME:-00:05:00}"
         submit_matrix "${DEBUG_MODEL:-125m}" "${DEBUG_STEPS:-50}" "${DEBUG_NODES:-1}" "${DEBUG_WALLTIME:-00:15:00}"
         submit_matrix "${GOOD_MODEL:-1.5b}" "${GOOD_STEPS:-200}" "${GOOD_NODES:-1}" "${GOOD_WALLTIME:-00:30:00}"
         ;;
