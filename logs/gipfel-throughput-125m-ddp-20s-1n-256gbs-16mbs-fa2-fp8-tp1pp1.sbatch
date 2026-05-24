@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --account=lsaie-ss26
-#SBATCH --time=00:30:00
-#SBATCH --job-name=gipfel-throughput-125m-fsdp-10s-1n-256gbs-16mbs-fa2-fp8-tp1pp1
+#SBATCH --time=00:10:00
+#SBATCH --job-name=gipfel-throughput-125m-ddp-20s-1n-256gbs-16mbs-fa2-fp8-tp1pp1
 #SBATCH --output=logs/%x-%j.log
 #SBATCH --error=logs/%x-%j.log
 #SBATCH --nodes=1
@@ -23,18 +23,18 @@ DATASET_CACHE_DIR=/iopsstor/scratch/cscs/$USER/gipfelsturm/cache
 MBS=16
 GBS=256
 SEQ_LEN=4096
-TRAINING_STEPS=10
+TRAINING_STEPS=20
 MODEL_SIZE=125m
 TP=1
 PP=1
-DP_BACKEND=fsdp
+DP_BACKEND=ddp
 ATTENTION_BACKEND=flash
 FP8=true
-CKPT_FORMAT=fsdp_dtensor
+CKPT_FORMAT=torch_dist
 
 # Logging
 PROJECT_NAME=gipfelsturm
-EXP_NAME=throughput-125m-fsdp-10s-1n-256gbs-16mbs-fa2-fp8-tp1pp1
+EXP_NAME=throughput-125m-ddp-20s-1n-256gbs-16mbs-fa2-fp8-tp1pp1
 LOG_DIR=/iopsstor/scratch/cscs/$USER/gipfelsturm/$EXP_NAME
 TENSORBOARD_DIR=$LOG_DIR/tensorboard
 CKPT_DIR=$LOG_DIR/checkpoints
@@ -149,7 +149,7 @@ TRAINING_ARGS=(
     --global-batch-size $GBS
     --train-iters $TRAINING_STEPS
     --log-interval 1
-    --eval-interval 10
+    --eval-interval 20
     --eval-iters 0
     # --cross-entropy-loss-fusion-impl te
     --cross-entropy-loss-fusion
@@ -173,7 +173,7 @@ REGULARIZATION_ARGS=(
 LEARNING_RATE_ARGS=(
     --lr 3e-4
     --lr-decay-style constant
-    --lr-warmup-iters 5
+    --lr-warmup-iters 10
 )
 
 INITIALIZATION_ARGS=(
@@ -228,7 +228,7 @@ LOGGING_ARGS=(
     --log-timers-to-tensorboard
 )
 SAVE_INTERVAL=0
-EXIT_DURATION_MINS=28
+EXIT_DURATION_MINS=8
 CHECKPOINT_ARGS=()
 if [ "$SAVE_INTERVAL" -gt 0 ]; then
     CHECKPOINT_ARGS=(

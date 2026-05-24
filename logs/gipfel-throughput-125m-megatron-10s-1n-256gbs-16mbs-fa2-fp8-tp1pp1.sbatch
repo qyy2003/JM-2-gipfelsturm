@@ -11,7 +11,7 @@
 #SBATCH --mem=460000
 #SBATCH --no-requeue
 
-echo "START TIME: \$(date)"
+echo "START TIME: $(date)"
 
 ################ Configs ################
 WORKDIR=/users/course_00323/scratch/JM-2-gipfelsturm
@@ -59,7 +59,11 @@ ulimit -c 0
 export PYTHONPATH=$MEGATRON_LM_DIR:/iopsstor/scratch/cscs/$USER/gipfelsturm/fa3:$PYTHONPATH
 # export NVTE_DEBUG=1
 # export NVTE_DEBUG_LEVEL=2
-export CUDA_DEVICE_MAX_CONNECTIONS=1
+if [ "$DP_BACKEND" = fsdp ]; then
+    export CUDA_DEVICE_MAX_CONNECTIONS=8
+else
+    export CUDA_DEVICE_MAX_CONNECTIONS=1
+fi
 export TORCH_NCCL_AVOID_RECORD_STREAMS=1
 export TORCH_NCCL_ASYNC_ERROR_HANDLING=1
 export TRITON_CACHE_DIR=/iopsstor/scratch/cscs/$USER/gipfelsturm/.triton_cache
@@ -121,9 +125,12 @@ PROBE_EOF
 
 TRANSFORMER_ENGINE_ARGS=(
     --transformer-impl transformer_engine
+    --attention-backend flash
+)
+
+OPTIMIZER_PRECISION_ARGS=(
     --use-precision-aware-optimizer
     --main-grads-dtype bf16
-    --attention-backend flash
 )
 NETWORK_SIZE_ARGS=(
     --num-layers 12
@@ -169,7 +176,7 @@ REGULARIZATION_ARGS=(
 LEARNING_RATE_ARGS=(
     --lr 3e-4
     --lr-decay-style constant
-    --lr-warmup-iters 10
+    --lr-warmup-iters 5
 )
 
 INITIALIZATION_ARGS=(
@@ -260,6 +267,7 @@ TORCHRUN_ARGS=(
 
 TRAINING_CMD="torchrun ${TORCHRUN_ARGS[@]} $MEGATRON_LM_DIR/pretrain_gpt.py \
     ${TRANSFORMER_ENGINE_ARGS[@]} \
+    ${OPTIMIZER_PRECISION_ARGS[@]} \
     ${NETWORK_SIZE_ARGS[@]} \
     ${TRAINING_ARGS[@]} \
     ${REGULARIZATION_ARGS[@]} \
