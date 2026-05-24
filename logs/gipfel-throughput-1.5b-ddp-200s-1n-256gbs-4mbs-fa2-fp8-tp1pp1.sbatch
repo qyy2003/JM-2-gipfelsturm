@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --account=lsaie-ss26
-#SBATCH --time=00:05:00
-#SBATCH --job-name=gipfel-throughput-125m-fsdp-20s-1n-256gbs-16mbs-fa2-fp8-tp1pp1
+#SBATCH --time=00:30:00
+#SBATCH --job-name=gipfel-throughput-1.5b-ddp-200s-1n-256gbs-4mbs-fa2-fp8-tp1pp1
 #SBATCH --output=logs/%x-%j.log
 #SBATCH --error=logs/%x-%j.log
 #SBATCH --nodes=1
@@ -20,21 +20,21 @@ DATA_PREFIX=/capstor/store/cscs/swissai/infra01/datasets/nvidia/Nemotron-ClimbMi
 DATASET_CACHE_DIR=/iopsstor/scratch/cscs/$USER/gipfelsturm/cache
 
 # Training config
-MBS=16
+MBS=4
 GBS=256
 SEQ_LEN=4096
-TRAINING_STEPS=20
-MODEL_SIZE=125m
+TRAINING_STEPS=200
+MODEL_SIZE=1.5b
 TP=1
 PP=1
-DP_BACKEND=fsdp
+DP_BACKEND=ddp
 ATTENTION_BACKEND=flash
 FP8=true
-CKPT_FORMAT=fsdp_dtensor
+CKPT_FORMAT=torch_dist
 
 # Logging
 PROJECT_NAME=gipfelsturm
-EXP_NAME=throughput-125m-fsdp-20s-1n-256gbs-16mbs-fa2-fp8-tp1pp1
+EXP_NAME=throughput-1.5b-ddp-200s-1n-256gbs-4mbs-fa2-fp8-tp1pp1
 LOG_DIR=/iopsstor/scratch/cscs/$USER/gipfelsturm/$EXP_NAME
 TENSORBOARD_DIR=$LOG_DIR/tensorboard
 CKPT_DIR=$LOG_DIR/checkpoints
@@ -130,10 +130,10 @@ TRANSFORMER_ENGINE_ARGS=(
 
 OPTIMIZER_PRECISION_ARGS=()
 NETWORK_SIZE_ARGS=(
-    --num-layers 12
-    --hidden-size 768
-    --ffn-hidden-size 2048
-    --num-attention-heads 12
+    --num-layers 48
+    --hidden-size 1600
+    --ffn-hidden-size 4352
+    --num-attention-heads 20
     --group-query-attention
     --num-query-groups 4
     --max-position-embeddings $SEQ_LEN
@@ -149,7 +149,7 @@ TRAINING_ARGS=(
     --global-batch-size $GBS
     --train-iters $TRAINING_STEPS
     --log-interval 1
-    --eval-interval 20
+    --eval-interval 200
     --eval-iters 0
     # --cross-entropy-loss-fusion-impl te
     --cross-entropy-loss-fusion
@@ -176,9 +176,7 @@ LEARNING_RATE_ARGS=(
     --lr-warmup-iters 10
 )
 
-TRAINING_COMPAT_ARGS=(
-    --no-gradient-accumulation-fusion
-)
+TRAINING_COMPAT_ARGS=()
 
 INITIALIZATION_ARGS=(
     --seed 42
@@ -232,7 +230,7 @@ LOGGING_ARGS=(
     --log-timers-to-tensorboard
 )
 SAVE_INTERVAL=0
-EXIT_DURATION_MINS=3
+EXIT_DURATION_MINS=28
 CHECKPOINT_FORMAT_ARGS=(
     --ckpt-format "$CKPT_FORMAT"
 )
