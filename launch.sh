@@ -346,6 +346,13 @@ OPTIMIZER_PRECISION_ARGS=(
     --main-grads-dtype bf16
 )
 OPTIMIZER_PRECISION
+elif [ "$DP_BACKEND" = fsdp ]; then
+    cat >> "$SCRIPT" << 'OPTIMIZER_PRECISION'
+
+OPTIMIZER_PRECISION_ARGS=(
+    --main-grads-dtype bf16
+)
+OPTIMIZER_PRECISION
 else
     cat >> "$SCRIPT" << 'OPTIMIZER_PRECISION'
 
