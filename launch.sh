@@ -39,7 +39,7 @@ case $MODE in
         TRAINING_STEPS=${3:-50}
         NODES=${4:-4}
         DP_BACKEND=${5:-${DP_BACKEND:-megatron}}
-        TIME=00:30:00
+        TIME=${WALLTIME:-00:30:00}
         EVAL_INTERVAL=$TRAINING_STEPS
         EVAL_ITERS=0
         LR_WARMUP_ITERS=10
@@ -54,7 +54,7 @@ case $MODE in
         TRAINING_STEPS=${3:?Usage: ./launch.sh train <model_size> <steps> [nodes] [dp_backend]}
         NODES=${4:-4}
         DP_BACKEND=${5:-${DP_BACKEND:-megatron}}
-        TIME=00:30:00
+        TIME=${WALLTIME:-00:30:00}
         # TIME=02:30:00
         EVAL_INTERVAL=1000
         EVAL_ITERS=10

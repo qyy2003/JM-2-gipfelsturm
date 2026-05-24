@@ -17,13 +17,19 @@ harness after we verify `deepspeed` is available in the Alps container.
 
 ## First Runs
 
-Smoke tests, one node, 10 steps:
+Smoke tests, one node, 20 steps, 10-minute allocation:
 
 ```bash
 ./experiments/submit_dp_backend_sweep.sh smoke
 ```
 
-Main 30-minute throughput comparison, one node, 1.5B model, 50 steps:
+Debug throughput tests, one node, 50 steps, 15-minute allocation:
+
+```bash
+./experiments/submit_dp_backend_sweep.sh debug
+```
+
+Main throughput comparison, one node, 1.5B model, 200 steps, 30-minute allocation:
 
 ```bash
 ./experiments/submit_dp_backend_sweep.sh good
@@ -38,7 +44,8 @@ Submit both:
 ## Useful Overrides
 
 ```bash
-GOOD_MODEL=760m GOOD_STEPS=50 GOOD_NODES=2 ./experiments/submit_dp_backend_sweep.sh good
+GOOD_MODEL=760m GOOD_STEPS=200 GOOD_NODES=2 ./experiments/submit_dp_backend_sweep.sh good
+GOOD_WALLTIME=00:20:00 ./experiments/submit_dp_backend_sweep.sh good
 MBS_OVERRIDE=2 BACKENDS="megatron fsdp" ./experiments/submit_dp_backend_sweep.sh good
 FP8=false ./experiments/submit_dp_backend_sweep.sh smoke
 ```
