@@ -74,6 +74,13 @@ case $MODE in
         ;;
 esac
 
+if [ "$LR_WARMUP_ITERS" -ge "$TRAINING_STEPS" ]; then
+    LR_WARMUP_ITERS=$((TRAINING_STEPS / 2))
+    if [ "$LR_WARMUP_ITERS" -lt 1 ]; then
+        LR_WARMUP_ITERS=1
+    fi
+fi
+
 case $DP_BACKEND in
     megatron|ddp|fsdp)
         ;;
@@ -201,7 +208,7 @@ SBATCH_DIRECTIVES
 
 cat >> "$SCRIPT" << 'BODY_HEAD'
 
-echo "START TIME: \$(date)"
+echo "START TIME: $(date)"
 
 ################ Configs ################
 BODY_HEAD
@@ -258,7 +265,11 @@ ulimit -c 0
 export PYTHONPATH=$MEGATRON_LM_DIR:/iopsstor/scratch/cscs/$USER/gipfelsturm/fa3:$PYTHONPATH
 # export NVTE_DEBUG=1
 # export NVTE_DEBUG_LEVEL=2
-export CUDA_DEVICE_MAX_CONNECTIONS=1
+if [ "$DP_BACKEND" = fsdp ]; then
+    export CUDA_DEVICE_MAX_CONNECTIONS=8
+else
+    export CUDA_DEVICE_MAX_CONNECTIONS=1
+fi
 export TORCH_NCCL_AVOID_RECORD_STREAMS=1
 export TORCH_NCCL_ASYNC_ERROR_HANDLING=1
 export TRITON_CACHE_DIR=/iopsstor/scratch/cscs/$USER/gipfelsturm/.triton_cache
@@ -323,11 +334,24 @@ SETUP
 cat >> "$SCRIPT" << TRANSFORMER_ENGINE_BLOCK
 TRANSFORMER_ENGINE_ARGS=(
     --transformer-impl transformer_engine
-    --use-precision-aware-optimizer
-    --main-grads-dtype bf16
     --attention-backend ${ATTENTION_BACKEND}
 )
 TRANSFORMER_ENGINE_BLOCK
+
+if [ "$DP_BACKEND" = megatron ]; then
+    cat >> "$SCRIPT" << 'OPTIMIZER_PRECISION'
+
+OPTIMIZER_PRECISION_ARGS=(
+    --use-precision-aware-optimizer
+    --main-grads-dtype bf16
+)
+OPTIMIZER_PRECISION
+else
+    cat >> "$SCRIPT" << 'OPTIMIZER_PRECISION'
+
+OPTIMIZER_PRECISION_ARGS=()
+OPTIMIZER_PRECISION
+fi
 
 cat >> "$SCRIPT" << MODEL
 NETWORK_SIZE_ARGS=(
@@ -497,6 +521,7 @@ TORCHRUN_ARGS=(
 
 TRAINING_CMD="torchrun ${TORCHRUN_ARGS[@]} $MEGATRON_LM_DIR/pretrain_gpt.py \
     ${TRANSFORMER_ENGINE_ARGS[@]} \
+    ${OPTIMIZER_PRECISION_ARGS[@]} \
     ${NETWORK_SIZE_ARGS[@]} \
     ${TRAINING_ARGS[@]} \
     ${REGULARIZATION_ARGS[@]} \
