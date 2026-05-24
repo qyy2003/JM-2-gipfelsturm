@@ -34,7 +34,7 @@ submit_matrix() {
 
 case "$PHASE" in
     smoke)
-        submit_matrix "${SMOKE_MODEL:-125m}" "${SMOKE_STEPS:-20}" "${SMOKE_NODES:-1}" "${SMOKE_WALLTIME:-00:10:00}"
+        submit_matrix "${SMOKE_MODEL:-125m}" "${SMOKE_STEPS:-20}" "${SMOKE_NODES:-1}" "${SMOKE_WALLTIME:-00:05:00}"
         ;;
     debug)
         submit_matrix "${DEBUG_MODEL:-125m}" "${DEBUG_STEPS:-50}" "${DEBUG_NODES:-1}" "${DEBUG_WALLTIME:-00:15:00}"

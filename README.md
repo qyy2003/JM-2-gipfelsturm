@@ -126,7 +126,7 @@ All training is launched via `launch.sh <mode> <model_size> [steps] [nodes] [dp_
 **DP backend sweep** submits a clean comparison matrix to W&B:
 
 ```bash
-./experiments/submit_dp_backend_sweep.sh smoke  # 125m, 20 steps, 1 node, 10 min
+./experiments/submit_dp_backend_sweep.sh smoke  # 125m, 20 steps, 1 node, 5 min
 ./experiments/submit_dp_backend_sweep.sh debug  # 125m, 50 steps, 1 node, 15 min
 ./experiments/submit_dp_backend_sweep.sh good   # 1.5b, 200 steps, 1 node, 30 min
 ```

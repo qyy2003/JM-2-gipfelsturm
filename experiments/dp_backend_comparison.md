@@ -17,7 +17,7 @@ harness after we verify `deepspeed` is available in the Alps container.
 
 ## First Runs
 
-Smoke tests, one node, 20 steps, 10-minute allocation:
+Smoke tests, one node, 20 steps, 5-minute allocation:
 
 ```bash
 ./experiments/submit_dp_backend_sweep.sh smoke
