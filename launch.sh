@@ -483,13 +483,16 @@ EXIT_DURATION_MINS=${EXIT_DURATION_MINS}
 CHECKPOINT_ARGS
 
 cat >> "$SCRIPT" << 'CHECKPOINT_ARGS_BODY'
+CHECKPOINT_FORMAT_ARGS=(
+    --ckpt-format "$CKPT_FORMAT"
+)
+
 CHECKPOINT_ARGS=()
 if [ "$SAVE_INTERVAL" -gt 0 ]; then
     CHECKPOINT_ARGS=(
         --save "$CKPT_DIR"
         --load "$CKPT_DIR"
         --save-interval "$SAVE_INTERVAL"
-        --ckpt-format "$CKPT_FORMAT"
         --exit-duration-in-mins "$EXIT_DURATION_MINS"
     )
 fi
@@ -530,6 +533,7 @@ TRAINING_CMD="torchrun ${TORCHRUN_ARGS[@]} $MEGATRON_LM_DIR/pretrain_gpt.py \
     ${MIXED_PRECISION_ARGS[@]} \
     ${DISTRIBUTED_ARGS[@]} \
     ${LOGGING_ARGS[@]} \
+    ${CHECKPOINT_FORMAT_ARGS[@]} \
     ${CHECKPOINT_ARGS[@]} \
     ${TOKENIZER_ARGS[@]} \
     ${DATA_ARGS[@]}"
