@@ -49,7 +49,7 @@ case $MODE in
         TRAINING_STEPS=${3:?Usage: ./launch.sh train <model_size> <steps> [nodes]}
         NODES=${4:-4}
         # TIME=00:30:00
-        TIME=02:30:00
+        TIME=02:10:00
         EVAL_INTERVAL=1000
         EVAL_ITERS=10
         LR_WARMUP_ITERS=200
@@ -107,10 +107,14 @@ esac
 
 GBS=256
 SEQ_LEN=4096
-ATTENTION_BACKEND=unfused
+ATTENTION_BACKEND=flash
 FP8=false
 TP=1
 PP=1
+
+# RESUME=1 (default): reuse existing checkpoint dir if the same EXP_NAME ran before.
+# RESUME=0: wipe the checkpoint dir and start training from scratch.
+RESUME=${RESUME:-1}
 
 EXP_NAME="${MODE}-${MODEL_SIZE}-${TRAINING_STEPS}s-${NODES}n-${GBS}gbs-${MBS}mbs-baseline-tp${TP}pp${PP}"
 JOB_NAME="gipfel-${EXP_NAME}"
@@ -188,7 +192,8 @@ TENSORBOARD_DIR=\$LOG_DIR/tensorboard
 CKPT_DIR=\$LOG_DIR/checkpoints
 CORES_DIR=\$LOG_DIR/cores
 
-# Resubmit knobs (consumed by the resubmit footer below).
+# Resume / resubmit knobs (consumed by the resubmit footer below).
+RESUME=${RESUME}
 RESUBMIT=${RESUBMIT}
 MAX_RESUBMITS=${MAX_RESUBMITS}
 RESUBMIT_COUNT=\${RESUBMIT_COUNT:-0}
@@ -198,6 +203,11 @@ CONFIGS
 cat >> "$SCRIPT" << 'SETUP'
 
 #########################################
+
+if [ "$RESUME" != "1" ] && [ -d "$LOG_DIR" ]; then
+    echo "[resume=0] wiping previous run dir: $LOG_DIR"
+    rm -rf "$CKPT_DIR" "$TENSORBOARD_DIR"
+fi
 
 mkdir -p logs $LOG_DIR $TENSORBOARD_DIR $CKPT_DIR $CORES_DIR $DATASET_CACHE_DIR
 
@@ -350,6 +360,7 @@ cat >> "$SCRIPT" << 'REST'
 DISTRIBUTED_ARGS=(
     --tensor-model-parallel-size $TP
     --pipeline-model-parallel-size $PP
+    --use-distributed-optimizer
 )
 
 LOGGING_ARGS=(
@@ -372,11 +383,13 @@ CHECKPOINT_ARGS=()
 if [ "$SAVE_INTERVAL" -gt 0 ]; then
     CHECKPOINT_ARGS=(
         --save "$CKPT_DIR"
-        --load "$CKPT_DIR"
         --save-interval "$SAVE_INTERVAL"
         --ckpt-format torch_dist
         --exit-duration-in-mins "$EXIT_DURATION_MINS"
     )
+    if [ "$RESUME" = "1" ]; then
+        CHECKPOINT_ARGS+=(--load "$CKPT_DIR")
+    fi
 fi
 CHECKPOINT_ARGS_BODY
 

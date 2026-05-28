@@ -49,8 +49,8 @@ case $MODE in
     train)
         TRAINING_STEPS=${2:?Usage: ./launch_moe.sh train <steps> [nodes]}
         NODES=${3:-8}
-        TIME=00:30:00
-        # TIME=02:30:00
+        # TIME=00:30:00
+        TIME=02:10:00
         EVAL_INTERVAL=1000
         EVAL_ITERS=10
         LR_WARMUP_ITERS=200
@@ -80,8 +80,13 @@ FFN=14336      # base FFN (attention projections use hidden size; MoE layers use
 HEADS=32
 KV_HEADS=8
 MBS=2
-GBS=256
+GBS=128
 SEQ_LEN=4096
+
+# Learning rate (overridable via env var, e.g. LR=1e-4 ./launch_moe.sh ...).
+# MIN_LR auto-derives as LR/10 unless explicitly set.
+LR=${LR:-1e-4} # 3e-4
+MIN_LR=${MIN_LR:-3e-5}
 
 # MoE: 8 experts, top-2 routing, per-expert FFN=7168 (half of dense)
 # Total params ~22B; activated params per token ~= 8B dense
@@ -94,6 +99,12 @@ ATTENTION_BACKEND=flash
 FP8=true
 TP=1
 PP=1
+USE_FSDP=false   # set true to enable Megatron FSDP (forces CUDA_DEVICE_MAX_CONNECTIONS>1)
+RECOMPUTE=0
+# RESUME=1 (default): reuse existing checkpoint dir if the same EXP_NAME ran before.
+# RESUME=0: wipe the checkpoint dir and start training from scratch.
+
+RESUME=${RESUME:-0}
 
 # Tag attention backend in EXP_NAME. For "flash", distinguish FA3 (installed via
 # build_fa3.sbatch) from the container's bundled FA2 by checking the install dir.
@@ -112,7 +123,11 @@ else
     PRECISION_TAG=""
 fi
 
-EXP_NAME="${MODE}-8b-moe-${TRAINING_STEPS}s-${NODES}n-${GBS}gbs-${MBS}mbs-expert${NUM_EXPERTS}-top${MOE_TOP_K}-ep${EXPERT_MP}-${ATTN_TAG}${PRECISION_TAG}-tp${TP}pp${PP}-te"
+FSDP_TAG=""
+[ "$USE_FSDP" = "true" ] && FSDP_TAG="-fsdp"
+RECOMPUTE_TAG=""
+[ "${RECOMPUTE:-1}" = "1" ] && RECOMPUTE_TAG="-recomp"
+EXP_NAME="${MODE}-8b-moe-${TRAINING_STEPS}s-${NODES}n-${GBS}gbs-${MBS}mbs-lr${LR}-expert${NUM_EXPERTS}-top${MOE_TOP_K}-ep${EXPERT_MP}-${ATTN_TAG}${PRECISION_TAG}-tp${TP}pp${PP}${FSDP_TAG}-te${RECOMPUTE_TAG}"
 JOB_NAME="gipfel-${EXP_NAME}"
 
 ################ W&B block ################
@@ -181,6 +196,8 @@ SEQ_LEN=${SEQ_LEN}
 TRAINING_STEPS=${TRAINING_STEPS}
 TP=${TP}
 PP=${PP}
+LR=${LR}
+MIN_LR=${MIN_LR}
 
 PROJECT_NAME=gipfelsturm
 EXP_NAME=${EXP_NAME}
@@ -189,14 +206,22 @@ TENSORBOARD_DIR=\$LOG_DIR/tensorboard
 CKPT_DIR=\$LOG_DIR/checkpoints
 CORES_DIR=\$LOG_DIR/cores
 
-# Resubmit knobs (consumed by the resubmit footer below).
+# Resume / resubmit knobs (consumed by the resubmit footer below).
+RESUME=${RESUME}
 RESUBMIT=${RESUBMIT}
 MAX_RESUBMITS=${MAX_RESUBMITS}
+USE_FSDP=${USE_FSDP}
+RECOMPUTE=${RECOMPUTE:-1}
 RESUBMIT_COUNT=\${RESUBMIT_COUNT:-0}
 echo "RESUBMIT_COUNT=\$RESUBMIT_COUNT (max=\$MAX_RESUBMITS)"
 CONFIGS
 
 cat >> "$SCRIPT" << 'SETUP'
+
+if [ "$RESUME" != "1" ] && [ -d "$LOG_DIR" ]; then
+    echo "[resume=0] wiping previous run dir: $LOG_DIR"
+    rm -rf "$CKPT_DIR" "$TENSORBOARD_DIR"
+fi
 
 mkdir -p logs $LOG_DIR $TENSORBOARD_DIR $CKPT_DIR $CORES_DIR $DATASET_CACHE_DIR
 
@@ -207,7 +232,13 @@ flock $MEGATRON_LM_DIR/.git-lock bash -c "cd $MEGATRON_LM_DIR && git checkout --
 # write, leaving 0-byte litter scattered through the workdir; suppress instead.
 ulimit -c 0
 export PYTHONPATH=$MEGATRON_LM_DIR:/iopsstor/scratch/cscs/$USER/gipfelsturm/fa3:$PYTHONPATH
-export CUDA_DEVICE_MAX_CONNECTIONS=1
+# TP/PP path requires =1 (NCCL stream strict ordering for comm/compute overlap).
+# FSDP path requires >1 (needs prefetch overlap; Megatron asserts != 1).
+if [ "$USE_FSDP" = "true" ]; then
+    export CUDA_DEVICE_MAX_CONNECTIONS=8
+else
+    export CUDA_DEVICE_MAX_CONNECTIONS=1
+fi
 export TORCH_NCCL_AVOID_RECORD_STREAMS=1
 export TORCH_NCCL_ASYNC_ERROR_HANDLING=1
 
@@ -233,7 +264,14 @@ export NCCL_NET_GDR_LEVEL=PHB
 # Reduce CUDA allocator fragmentation by using virtual-memory-backed
 # expandable segments (cuMemMap). Helps when large transient buffers
 # (fp32 logits, inductor temporaries) can't find contiguous space.
-export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+# NOTE: incompatible with --use-nccl-ub (which uses torch.cuda.MemPool);
+# Megatron asserts at startup if both are on. FSDP path uses nccl_ub, so
+# disable expandable_segments there.
+if [ "$USE_FSDP" = "true" ]; then
+    unset PYTORCH_CUDA_ALLOC_CONF
+else
+    export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+fi
 
 export TRITON_CACHE_DIR=/iopsstor/scratch/cscs/$USER/gipfelsturm/.triton_cache
 export TORCHINDUCTOR_CACHE_DIR=/iopsstor/scratch/cscs/$USER/gipfelsturm/.inductor_cache
@@ -287,11 +325,24 @@ PROBE_EOF
 
 SETUP
 
+# --use-precision-aware-optimizer routes through TE FusedAdam, which does an
+# in-place copy_ that doesn't accept DTensor on either side. Megatron-FSDP shards
+# params as DTensor, so the two are incompatible — drop the flag when FSDP is on.
+# --main-grads-dtype bf16 is only valid alongside the precision-aware optimizer
+# (Megatron asserts main_grads_dtype==fp32 otherwise); the two go together.
+if [ "$USE_FSDP" = "true" ]; then
+    PRECISION_AWARE_OPT_LINE="# --use-precision-aware-optimizer  (disabled: incompatible with FSDP/DTensor)"
+    MAIN_GRADS_DTYPE_LINE="# --main-grads-dtype bf16  (disabled with precision-aware optimizer)"
+else
+    PRECISION_AWARE_OPT_LINE="--use-precision-aware-optimizer"
+    MAIN_GRADS_DTYPE_LINE="--main-grads-dtype bf16"
+fi
+
 cat >> "$SCRIPT" << TRANSFORMER_ENGINE_BLOCK
 TRANSFORMER_ENGINE_ARGS=(
     --transformer-impl transformer_engine
-    --use-precision-aware-optimizer
-    --main-grads-dtype bf16
+    ${PRECISION_AWARE_OPT_LINE}
+    ${MAIN_GRADS_DTYPE_LINE}
     --attention-backend ${ATTENTION_BACKEND}
 )
 TRANSFORMER_ENGINE_BLOCK
@@ -321,6 +372,10 @@ MOE_ARGS=(
     --moe-router-load-balancing-type aux_loss
     --moe-aux-loss-coeff 1e-2
     --expert-model-parallel-size ${EXPERT_MP}
+    # --moe-permute-fusion
+    # --moe-router-fusion
+
+
     # --moe-router-pre-softmax
 )
 MODEL
@@ -354,9 +409,9 @@ REGULARIZATION_ARGS=(
 )
 
 LEARNING_RATE_ARGS=(
-    --lr 3e-4
+    --lr \$LR
     --lr-decay-style cosine
-    --min-lr 3e-5
+    --min-lr \$MIN_LR
     --lr-warmup-iters ${LR_WARMUP_ITERS}
 )
 TRAINING
@@ -394,11 +449,32 @@ DISTRIBUTED_ARGS=(
     --use-distributed-optimizer
     --overlap-grad-reduce
     --overlap-param-gather
-    # --use-megatron-fsdp
-    # --data-parallel-sharding-strategy optim_grads_params
-    # --ckpt-format fsdp_dtensor
-    # --init-model-with-meta-device
+    # --sequence-parallel
+    # --moe-layer-recompute
 )
+
+# FSDP + MoE + FP8 sits right at the edge of 95 GB on H100. Recompute frees
+# 10+ GB of activations at ~20-30% throughput cost. Toggle via env if needed.
+RECOMPUTE=${RECOMPUTE:-1}
+if [ "$RECOMPUTE" = "1" ]; then
+    DISTRIBUTED_ARGS+=(
+        --recompute-activations
+        --recompute-granularity selective
+    )
+fi
+
+if [ "$USE_FSDP" = "true" ]; then
+    DISTRIBUTED_ARGS+=(
+        --use-megatron-fsdp
+        --data-parallel-sharding-strategy optim_grads_params
+        --no-gradient-accumulation-fusion
+        --calculate-per-token-loss
+        --init-model-with-meta-device
+        --grad-reduce-in-bf16
+        --fsdp-double-buffer
+        --use-nccl-ub
+    )
+fi
 
 LOGGING_ARGS=(
     --log-throughput
@@ -418,13 +494,20 @@ CHECKPOINT_ARGS
 cat >> "$SCRIPT" << 'CHECKPOINT_ARGS_BODY'
 CHECKPOINT_ARGS=()
 if [ "$SAVE_INTERVAL" -gt 0 ]; then
+    if [ "$USE_FSDP" = "true" ]; then
+        CKPT_FORMAT=fsdp_dtensor
+    else
+        CKPT_FORMAT=torch_dist
+    fi
     CHECKPOINT_ARGS=(
         --save "$CKPT_DIR"
-        --load "$CKPT_DIR"
         --save-interval "$SAVE_INTERVAL"
-        --ckpt-format torch_dist
+        --ckpt-format "$CKPT_FORMAT"
         --exit-duration-in-mins "$EXIT_DURATION_MINS"
     )
+    if [ "$RESUME" = "1" ]; then
+        CHECKPOINT_ARGS+=(--load "$CKPT_DIR")
+    fi
 fi
 CHECKPOINT_ARGS_BODY
 

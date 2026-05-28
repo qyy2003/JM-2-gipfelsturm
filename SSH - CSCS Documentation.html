@@ -1,0 +1,6962 @@
+<!DOCTYPE html>
+<!-- saved from url=(0050)https://docs.cscs.ch/access/ssh/#revoking-ssh-keys -->
+<html lang="en" class="js-focus-visible js" data-js-focus-visible="" data-immersive-translate-page-theme="dark"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+      
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://docs.cscs.ch/access/ssh/">
+      
+      
+        <link rel="prev" href="https://docs.cscs.ch/access/web/">
+      
+      
+        <link rel="next" href="https://docs.cscs.ch/access/firecrest/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="https://docs.cscs.ch/assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>SSH - CSCS Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="./SSH - CSCS Documentation_files/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="./SSH - CSCS Documentation_files/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+        <link rel="stylesheet" href="./SSH - CSCS Documentation_files/css">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="./SSH - CSCS Documentation_files/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  <meta name="theme-color" content="#ffffff"><meta name="color-scheme" content="dark"><style type="text/css">.CtxtMenu_InfoClose {  top:.2em; right:.2em;}
+.CtxtMenu_InfoContent {  overflow:auto; text-align:left; font-size:80%;  padding:.4em .6em; border:1px inset; margin:1em 0px;  max-height:20em; max-width:30em; background-color:#EEEEEE;  white-space:normal;}
+.CtxtMenu_Info.CtxtMenu_MousePost {outline:none;}
+.CtxtMenu_Info {  position:fixed; left:50%; width:auto; text-align:center;  border:3px outset; padding:1em 2em; background-color:#DDDDDD;  color:black;  cursor:default; font-family:message-box; font-size:120%;  font-style:normal; text-indent:0; text-transform:none;  line-height:normal; letter-spacing:normal; word-spacing:normal;  word-wrap:normal; white-space:nowrap; float:none; z-index:201;  border-radius: 15px;                     /* Opera 10.5 and IE9 */  -webkit-border-radius:15px;               /* Safari and Chrome */  -moz-border-radius:15px;                  /* Firefox */  -khtml-border-radius:15px;                /* Konqueror */  box-shadow:0px 10px 20px #808080;         /* Opera 10.5 and IE9 */  -webkit-box-shadow:0px 10px 20px #808080; /* Safari 3 & Chrome */  -moz-box-shadow:0px 10px 20px #808080;    /* Forefox 3.5 */  -khtml-box-shadow:0px 10px 20px #808080;  /* Konqueror */  filter:progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color="gray", Positive="true"); /* IE */}
+</style><style type="text/css">.CtxtMenu_MenuClose {  position:absolute;  cursor:pointer;  display:inline-block;  border:2px solid #AAA;  border-radius:18px;  -webkit-border-radius: 18px;             /* Safari and Chrome */  -moz-border-radius: 18px;                /* Firefox */  -khtml-border-radius: 18px;              /* Konqueror */  font-family: "Courier New", Courier;  font-size:24px;  color:#F0F0F0}
+.CtxtMenu_MenuClose span {  display:block; background-color:#AAA; border:1.5px solid;  border-radius:18px;  -webkit-border-radius: 18px;             /* Safari and Chrome */  -moz-border-radius: 18px;                /* Firefox */  -khtml-border-radius: 18px;              /* Konqueror */  line-height:0;  padding:8px 0 6px     /* may need to be browser-specific */}
+.CtxtMenu_MenuClose:hover {  color:white!important;  border:2px solid #CCC!important}
+.CtxtMenu_MenuClose:hover span {  background-color:#CCC!important}
+.CtxtMenu_MenuClose:hover:focus {  outline:none}
+</style><style type="text/css">.CtxtMenu_Menu {  position:absolute;  background-color:white;  color:black;  width:auto; padding:5px 0px;  border:1px solid #CCCCCC; margin:0; cursor:default;  font: menu; text-align:left; text-indent:0; text-transform:none;  line-height:normal; letter-spacing:normal; word-spacing:normal;  word-wrap:normal; white-space:nowrap; float:none; z-index:201;  border-radius: 5px;                     /* Opera 10.5 and IE9 */  -webkit-border-radius: 5px;             /* Safari and Chrome */  -moz-border-radius: 5px;                /* Firefox */  -khtml-border-radius: 5px;              /* Konqueror */  box-shadow:0px 10px 20px #808080;         /* Opera 10.5 and IE9 */  -webkit-box-shadow:0px 10px 20px #808080; /* Safari 3 & Chrome */  -moz-box-shadow:0px 10px 20px #808080;    /* Forefox 3.5 */  -khtml-box-shadow:0px 10px 20px #808080;  /* Konqueror */}
+.CtxtMenu_MenuItem {  padding: 1px 2em;  background:transparent;}
+.CtxtMenu_MenuArrow {  position:absolute; right:.5em; padding-top:.25em; color:#666666;  font-family: null; font-size: .75em}
+.CtxtMenu_MenuActive .CtxtMenu_MenuArrow {color:white}
+.CtxtMenu_MenuArrow.CtxtMenu_RTL {left:.5em; right:auto}
+.CtxtMenu_MenuCheck {  position:absolute; left:.7em;  font-family: null}
+.CtxtMenu_MenuCheck.CtxtMenu_RTL { right:.7em; left:auto }
+.CtxtMenu_MenuRadioCheck {  position:absolute; left: .7em;}
+.CtxtMenu_MenuRadioCheck.CtxtMenu_RTL {  right: .7em; left:auto}
+.CtxtMenu_MenuInputBox {  padding-left: 1em; right:.5em; color:#666666;  font-family: null;}
+.CtxtMenu_MenuInputBox.CtxtMenu_RTL {  left: .1em;}
+.CtxtMenu_MenuComboBox {  left:.1em; padding-bottom:.5em;}
+.CtxtMenu_MenuSlider {  left: .1em;}
+.CtxtMenu_SliderValue {  position:absolute; right:.1em; padding-top:.25em; color:#333333;  font-size: .75em}
+.CtxtMenu_SliderBar {  outline: none; background: #d3d3d3}
+.CtxtMenu_MenuLabel {  padding: 1px 2em 3px 1.33em;  font-style:italic}
+.CtxtMenu_MenuRule {  border-top: 1px solid #DDDDDD;  margin: 4px 3px;}
+.CtxtMenu_MenuDisabled {  color:GrayText}
+.CtxtMenu_MenuActive {  background-color: #606872;  color: white;}
+.CtxtMenu_MenuDisabled:focus {  background-color: #E8E8E8}
+.CtxtMenu_MenuLabel:focus {  background-color: #E8E8E8}
+.CtxtMenu_ContextMenu:focus {  outline:none}
+.CtxtMenu_ContextMenu .CtxtMenu_MenuItem:focus {  outline:none}
+.CtxtMenu_SelectionMenu {  position:relative; float:left;  border-bottom: none; -webkit-box-shadow:none; -webkit-border-radius:0px; }
+.CtxtMenu_SelectionItem {  padding-right: 1em;}
+.CtxtMenu_Selection {  right: 40%; width:50%; }
+.CtxtMenu_SelectionBox {  padding: 0em; max-height:20em; max-width: none;  background-color:#FFFFFF;}
+.CtxtMenu_SelectionDivider {  clear: both; border-top: 2px solid #000000;}
+.CtxtMenu_Menu .CtxtMenu_MenuClose {  top:-10px; left:-10px}
+</style><style id="MJX-CHTML-styles">
+mjx-container[jax="CHTML"] {
+  line-height: 0;
+}
+
+mjx-container [space="1"] {
+  margin-left: .111em;
+}
+
+mjx-container [space="2"] {
+  margin-left: .167em;
+}
+
+mjx-container [space="3"] {
+  margin-left: .222em;
+}
+
+mjx-container [space="4"] {
+  margin-left: .278em;
+}
+
+mjx-container [space="5"] {
+  margin-left: .333em;
+}
+
+mjx-container [rspace="1"] {
+  margin-right: .111em;
+}
+
+mjx-container [rspace="2"] {
+  margin-right: .167em;
+}
+
+mjx-container [rspace="3"] {
+  margin-right: .222em;
+}
+
+mjx-container [rspace="4"] {
+  margin-right: .278em;
+}
+
+mjx-container [rspace="5"] {
+  margin-right: .333em;
+}
+
+mjx-container [size="s"] {
+  font-size: 70.7%;
+}
+
+mjx-container [size="ss"] {
+  font-size: 50%;
+}
+
+mjx-container [size="Tn"] {
+  font-size: 60%;
+}
+
+mjx-container [size="sm"] {
+  font-size: 85%;
+}
+
+mjx-container [size="lg"] {
+  font-size: 120%;
+}
+
+mjx-container [size="Lg"] {
+  font-size: 144%;
+}
+
+mjx-container [size="LG"] {
+  font-size: 173%;
+}
+
+mjx-container [size="hg"] {
+  font-size: 207%;
+}
+
+mjx-container [size="HG"] {
+  font-size: 249%;
+}
+
+mjx-container [width="full"] {
+  width: 100%;
+}
+
+mjx-box {
+  display: inline-block;
+}
+
+mjx-block {
+  display: block;
+}
+
+mjx-itable {
+  display: inline-table;
+}
+
+mjx-row {
+  display: table-row;
+}
+
+mjx-row > * {
+  display: table-cell;
+}
+
+mjx-mtext {
+  display: inline-block;
+}
+
+mjx-mstyle {
+  display: inline-block;
+}
+
+mjx-merror {
+  display: inline-block;
+  color: red;
+  background-color: yellow;
+}
+
+mjx-mphantom {
+  visibility: hidden;
+}
+
+_::-webkit-full-page-media, _:future, :root mjx-container {
+  will-change: opacity;
+}
+
+mjx-assistive-mml {
+  position: absolute !important;
+  top: 0px;
+  left: 0px;
+  clip: rect(1px, 1px, 1px, 1px);
+  padding: 1px 0px 0px 0px !important;
+  border: 0px !important;
+  display: block !important;
+  width: auto !important;
+  overflow: hidden !important;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+mjx-assistive-mml[display="block"] {
+  width: 100% !important;
+}
+
+mjx-c::before {
+  display: block;
+  width: 0;
+}
+
+.MJX-TEX {
+  font-family: MJXZERO, MJXTEX;
+}
+
+.TEX-B {
+  font-family: MJXZERO, MJXTEX-B;
+}
+
+.TEX-I {
+  font-family: MJXZERO, MJXTEX-I;
+}
+
+.TEX-MI {
+  font-family: MJXZERO, MJXTEX-MI;
+}
+
+.TEX-BI {
+  font-family: MJXZERO, MJXTEX-BI;
+}
+
+.TEX-S1 {
+  font-family: MJXZERO, MJXTEX-S1;
+}
+
+.TEX-S2 {
+  font-family: MJXZERO, MJXTEX-S2;
+}
+
+.TEX-S3 {
+  font-family: MJXZERO, MJXTEX-S3;
+}
+
+.TEX-S4 {
+  font-family: MJXZERO, MJXTEX-S4;
+}
+
+.TEX-A {
+  font-family: MJXZERO, MJXTEX-A;
+}
+
+.TEX-C {
+  font-family: MJXZERO, MJXTEX-C;
+}
+
+.TEX-CB {
+  font-family: MJXZERO, MJXTEX-CB;
+}
+
+.TEX-FR {
+  font-family: MJXZERO, MJXTEX-FR;
+}
+
+.TEX-FRB {
+  font-family: MJXZERO, MJXTEX-FRB;
+}
+
+.TEX-SS {
+  font-family: MJXZERO, MJXTEX-SS;
+}
+
+.TEX-SSB {
+  font-family: MJXZERO, MJXTEX-SSB;
+}
+
+.TEX-SSI {
+  font-family: MJXZERO, MJXTEX-SSI;
+}
+
+.TEX-SC {
+  font-family: MJXZERO, MJXTEX-SC;
+}
+
+.TEX-T {
+  font-family: MJXZERO, MJXTEX-T;
+}
+
+.TEX-V {
+  font-family: MJXZERO, MJXTEX-V;
+}
+
+.TEX-VB {
+  font-family: MJXZERO, MJXTEX-VB;
+}
+
+mjx-stretchy-v mjx-c, mjx-stretchy-h mjx-c {
+  font-family: MJXZERO, MJXTEX-S1, MJXTEX-S4, MJXTEX, MJXTEX-A ! important;
+}
+
+@font-face /* 0 */ {
+  font-family: MJXZERO;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Zero.woff") format("woff");
+}
+
+@font-face /* 1 */ {
+  font-family: MJXTEX;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Main-Regular.woff") format("woff");
+}
+
+@font-face /* 2 */ {
+  font-family: MJXTEX-B;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Main-Bold.woff") format("woff");
+}
+
+@font-face /* 3 */ {
+  font-family: MJXTEX-I;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Math-Italic.woff") format("woff");
+}
+
+@font-face /* 4 */ {
+  font-family: MJXTEX-MI;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Main-Italic.woff") format("woff");
+}
+
+@font-face /* 5 */ {
+  font-family: MJXTEX-BI;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Math-BoldItalic.woff") format("woff");
+}
+
+@font-face /* 6 */ {
+  font-family: MJXTEX-S1;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size1-Regular.woff") format("woff");
+}
+
+@font-face /* 7 */ {
+  font-family: MJXTEX-S2;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size2-Regular.woff") format("woff");
+}
+
+@font-face /* 8 */ {
+  font-family: MJXTEX-S3;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size3-Regular.woff") format("woff");
+}
+
+@font-face /* 9 */ {
+  font-family: MJXTEX-S4;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size4-Regular.woff") format("woff");
+}
+
+@font-face /* 10 */ {
+  font-family: MJXTEX-A;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_AMS-Regular.woff") format("woff");
+}
+
+@font-face /* 11 */ {
+  font-family: MJXTEX-C;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Calligraphic-Regular.woff") format("woff");
+}
+
+@font-face /* 12 */ {
+  font-family: MJXTEX-CB;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Calligraphic-Bold.woff") format("woff");
+}
+
+@font-face /* 13 */ {
+  font-family: MJXTEX-FR;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Fraktur-Regular.woff") format("woff");
+}
+
+@font-face /* 14 */ {
+  font-family: MJXTEX-FRB;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Fraktur-Bold.woff") format("woff");
+}
+
+@font-face /* 15 */ {
+  font-family: MJXTEX-SS;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_SansSerif-Regular.woff") format("woff");
+}
+
+@font-face /* 16 */ {
+  font-family: MJXTEX-SSB;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_SansSerif-Bold.woff") format("woff");
+}
+
+@font-face /* 17 */ {
+  font-family: MJXTEX-SSI;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_SansSerif-Italic.woff") format("woff");
+}
+
+@font-face /* 18 */ {
+  font-family: MJXTEX-SC;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Script-Regular.woff") format("woff");
+}
+
+@font-face /* 19 */ {
+  font-family: MJXTEX-T;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Typewriter-Regular.woff") format("woff");
+}
+
+@font-face /* 20 */ {
+  font-family: MJXTEX-V;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Vector-Regular.woff") format("woff");
+}
+
+@font-face /* 21 */ {
+  font-family: MJXTEX-VB;
+  src: url("https://unpkg.com/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Vector-Bold.woff") format("woff");
+}
+</style></head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="white" data-md-color-accent="blue" data-md-color-media="(prefers-color-scheme)">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="https://docs.cscs.ch/access/ssh/#using-ssh" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="https://docs.cscs.ch/" title="CSCS Documentation" class="md-header__button md-logo" aria-label="CSCS Documentation" data-md-component="logo">
+      
+  <img src="./SSH - CSCS Documentation_files/cscs-logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+    </label>
+    <div class="md-header__title md-header__title--active" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            CSCS Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              SSH
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="white" data-md-color-accent="blue" aria-label="Switch to dark mode" type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="white" data-md-color-accent="blue" aria-label="Switch to light mode" type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden="">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required="">
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="https://docs.cscs.ch/access/ssh/?q=" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard="" data-clipboard-text="javascript:void(0)" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"></path></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0">
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">Type to start searching</div>
+          <ol class="md-search-result__list" role="presentation" hidden=""></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/eth-cscs/cscs-docs" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository md-source__repository--active">
+    GitHub
+  <ul class="md-source__facts"><li class="md-source__fact md-source__fact--stars">33</li><li class="md-source__fact md-source__fact--forks">47</li></ul></div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" style="top: 48px;">
+                <div class="md-sidebar__scrollwrap" style="height: 569px;">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="https://docs.cscs.ch/" title="CSCS Documentation" class="md-nav__button md-logo" aria-label="CSCS Documentation" data-md-component="logo">
+      
+  <img src="./SSH - CSCS Documentation_files/cscs-logo.png" alt="logo">
+
+    </a>
+    CSCS Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/eth-cscs/cscs-docs" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"></path></svg>
+  </div>
+  <div class="md-source__repository md-source__repository--active">
+    GitHub
+  <ul class="md-source__facts"><li class="md-source__fact md-source__fact--stars">33</li><li class="md-source__fact md-source__fact--forks">47</li></ul></div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list">
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/alps/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alps
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Alps
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/alps/platforms/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platforms
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/clusters/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clusters
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Clusters
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/clusters/besso/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Besso
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/clusters/bristen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bristen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/clusters/clariden/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clariden
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/clusters/daint/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Daint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/clusters/eiger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Eiger
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/clusters/santis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Santis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/alps/hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hardware
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/alps/storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/platforms/mlp/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Machine Learning Platform
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Machine Learning Platform
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/clusters/clariden/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clariden
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/clusters/bristen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bristen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_7">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/platforms/hpcp/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HPC Platform
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    HPC Platform
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/clusters/daint/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Daint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/clusters/eiger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Eiger
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_8">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/platforms/cwp/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Climate and Weather Platform
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Climate and Weather Platform
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/clusters/santis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Santis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked="">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/access/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connecting to Alps
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Connecting to Alps
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/access/mfa/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Multi Factor Authentication (MFA)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/access/web/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Portals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSH
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="https://docs.cscs.ch/access/ssh/" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSH
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc">
+      
+        <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#ssh-key-management-overview" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        SSH key management overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#command-line-access" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Command-line access
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Command-line access">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#installation" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#setup-ssh-keys" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Setup SSH keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#usage" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#shell-completion" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Shell completion
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#managing-ssh-keys-at-user-accountcscsch" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Managing SSH keys at user-account.cscs.ch
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Managing SSH keys at user-account.cscs.ch">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#sign-your-existing-ssh-key" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Sign your existing SSH key
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#key-validity-and-limits" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Key validity and limits
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#logging-in" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Logging in
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Logging in">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#adding-ela-as-a-jump-host-in-ssh-configuration" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Adding Ela as a jump host in SSH configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#using-ssh-agent" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Using SSH agent
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#ssh-tunnel-to-a-service-on-alps-compute-nodes-via-ela" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        SSH tunnel to a service on Alps compute nodes via Ela
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#revoking-ssh-keys" class="md-nav__link md-nav__link--passed md-nav__link--active">
+    <span class="md-ellipsis">
+      
+        Revoking SSH keys
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Revoking SSH keys">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#revoke-via-web-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revoke via web dashboard
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#revoke-via-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revoke via CLI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#known-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known issues
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#legacy-old-ssh-key-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Legacy: old SSH key management
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/access/firecrest/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FirecREST
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/access/hpc-console/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HPC Console
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/access/jupyterlab/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JupyterLab
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/access/vscode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VSCode
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/access/service-accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Service Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/running/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Jobs
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Running Jobs
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/running/slurm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Slurm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/running/hyperqueue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HyperQueue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/running/vetnode/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vetnode
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/running/known-issues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Known issues
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/environments/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environments
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Environments
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/guides/terminal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started in the terminal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/software/uenv/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    uenv
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_3" id="__nav_5_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    uenv
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/uenv/using/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using uenv
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/uenv/management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Managing uenv
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/uenv/build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building uenv
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/uenv/configure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/uenv/release-notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/uenv/deploy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploying uenv
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/uenv/guides/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_4">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/software/container-engine/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Container Engine
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5_4" id="__nav_5_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Container Engine
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/container-engine/run/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using the Container Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/container-engine/resource-hook/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hooks and native resources
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/container-engine/edf/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EDF reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/container-engine/known-issue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Known issues
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/build-install/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building and Installing Software
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Building and Installing Software
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/software/prgenv/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Programming Environments
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Programming Environments
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/prgenv/prgenv-gnu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    prgenv-gnu
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/prgenv/prgenv-gnu-openmpi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    prgenv-gnu-openmpi
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/prgenv/prgenv-nvfortran/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    prgenv-nvfortran
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/prgenv/prgenv-intel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    prgenv-intel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/prgenv/linalg/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    linalg
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/prgenv/julia/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    julia
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/prgenv/cpe/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cray modules (CPE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/alps-extended-images/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alps Extended Images
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3">
+        
+          
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How to build software
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How to build software
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/build-install/uenv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    uenv
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/build-install/python/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_4">
+        
+          
+          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packaging and Deployment
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Packaging and Deployment
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/uenv/build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building uenv
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/build-install/containers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Creating Containers with podman
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/software/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Applications and Frameworks
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7" id="__nav_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Applications and Frameworks
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_2">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/software/sciapps/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Applications
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_2" id="__nav_7_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Scientific Applications
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/sciapps/cp2k/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CP2K
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/sciapps/gromacs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GROMACS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/sciapps/lammps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LAMMPS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/sciapps/namd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NAMD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/sciapps/quantumespresso/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quantum ESPRESSO
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/sciapps/vasp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VASP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_3">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/software/ml/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Machine Learning
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_3" id="__nav_7_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Machine Learning
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/ml/pytorch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PyTorch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_3_3">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/tutorials/ml/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_3_3" id="__nav_7_3_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_7_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/tutorials/ml/llm-inference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM Inference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/tutorials/ml/llm-fine-tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM Fine-tuning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/tutorials/ml/llm-nanotron-training/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM Pre-training
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_4">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/software/cw/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Climate and Weather
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Climate and Weather
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/cw/deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/cw/icon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ICON
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/cw/netcdf-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    netcdf-tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_5">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/software/communication/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Communication Libraries
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Communication Libraries
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/communication/libfabric/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    libfabric
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/communication/cray-mpich/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cray MPICH
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/communication/mpich/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MPICH
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/communication/openmpi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OpenMPI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/communication/nccl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NCCL
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/communication/nvshmem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NVSHMEM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_6">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/software/userapps/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Applications
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_6" id="__nav_7_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Applications
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/userapps/cesm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ESMF and CESM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/userapps/orca/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ORCA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/userapps/wrf/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    WRF
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_7">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/software/commercial/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commercial Software
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_7" id="__nav_7_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Commercial Software
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/commercial/matlab/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Matlab
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_8">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/software/sciviz/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Visualization
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_8" id="__nav_7_8_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Scientific Visualization
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/sciviz/paraview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ParaView
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/unsupported/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prohibited Software
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/software/devtools/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Debugging and Performance Analysis
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Debugging and Performance Analysis
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/devtools/nvidia-nsight/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using NVIDIA Nsight
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_3">
+        
+          
+          <label class="md-nav__link" for="__nav_8_3" id="__nav_8_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using Linaro Forge
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Using Linaro Forge
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/devtools/linaro-uenv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linaro uenv
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/devtools/linaro-map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linaro performance analysis tool
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/devtools/linaro-ddt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linaro debugger
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/software/devtools/vihps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using Score-P/Scalasca
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/running/jobreport/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Job report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/running/gssr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GPU report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/storage/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Management and Storage
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_9" id="__nav_9_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Management and Storage
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/storage/filesystems/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File Systems
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/storage/transfer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Transfer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/storage/longterm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Long Term Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/storage/object/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Object Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/services/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Services
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_10" id="__nav_10_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Services
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/services/devportal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Portal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/services/cicd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10_4">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/services/kubernetes/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_10_4" id="__nav_10_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_10_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Kubernetes
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/services/kubernetes/clusters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clusters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/services/kubernetes/kubernetes-upgrades/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kubernetes Upgrades
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/services/kubernetes/node-updates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node OS Updates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/accounts/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accounts and Projects
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_11" id="__nav_11_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Accounts and Projects
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/accounts/waldur/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project and Resources Management Tool
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/accounts/account-create/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Creating a new account
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/guides/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_12" id="__nav_12_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/guides/internet-access/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Internet Access on Alps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/guides/storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/guides/getting-support/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Support Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_13">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/policies/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Policies
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_13" id="__nav_13_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Policies
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/policies/regulations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Regulations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/policies/code-of-conduct/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/policies/support/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Support Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/policies/slack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Slack Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://docs.cscs.ch/policies/maintenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scheduled Maintenance and System Unavailability Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_14">
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="https://docs.cscs.ch/contributing/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_14">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list">
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" style="top: 48px;">
+                <div class="md-sidebar__scrollwrap" style="height: 569px;">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc">
+      
+        <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#ssh-key-management-overview" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        SSH key management overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#command-line-access" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Command-line access
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Command-line access">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#installation" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#setup-ssh-keys" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Setup SSH keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#usage" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#shell-completion" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Shell completion
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#managing-ssh-keys-at-user-accountcscsch" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Managing SSH keys at user-account.cscs.ch
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Managing SSH keys at user-account.cscs.ch">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#sign-your-existing-ssh-key" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Sign your existing SSH key
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#key-validity-and-limits" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Key validity and limits
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#logging-in" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Logging in
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Logging in">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#adding-ela-as-a-jump-host-in-ssh-configuration" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Adding Ela as a jump host in SSH configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#using-ssh-agent" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        Using SSH agent
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#ssh-tunnel-to-a-service-on-alps-compute-nodes-via-ela" class="md-nav__link md-nav__link--passed">
+    <span class="md-ellipsis">
+      
+        SSH tunnel to a service on Alps compute nodes via Ela
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#revoking-ssh-keys" class="md-nav__link md-nav__link--passed md-nav__link--active">
+    <span class="md-ellipsis">
+      
+        Revoking SSH keys
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Revoking SSH keys">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#revoke-via-web-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revoke via web dashboard
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#revoke-via-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Revoke via CLI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#known-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known issues
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="https://docs.cscs.ch/access/ssh/#legacy-old-ssh-key-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Legacy: old SSH key management
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation">
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="https://docs.cscs.ch/" class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Welcome
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="https://docs.cscs.ch/access/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Connecting to Alps
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/eth-cscs/cscs-docs/edit/main/docs/access/ssh.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"></path></svg>
+    </a>
+  
+  
+
+
+<p><a href="https://docs.cscs.ch/access/ssh/" id="ref-ssh"></a></p>
+<h1 id="using-ssh">Using SSH<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#using-ssh" title="Permanent link">¶</a></h1>
+<p>Before accessing CSCS clusters using SSH, first ensure that you have <a class="autorefs autorefs-internal" title="Getting and Managing Accounts" href="https://docs.cscs.ch/accounts/#getting-and-managing-accounts">created a user account</a> that is part of a project that has access to the cluster, and have <a class="autorefs autorefs-internal" title="Multi Factor Authentication" href="https://docs.cscs.ch/access/mfa/#multi-factor-authentication">multi factor authentication</a> configured.</p>
+<h2 id="ssh-key-management-overview">SSH key management overview<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#ssh-key-management-overview" title="Permanent link">¶</a></h2>
+<p>Username+password authentication is not available for SSH access.
+Instead, you must use SSH keys signed by CSCS.
+The recommended approach is to generate the SSH key locally and then have it signed by CSCS.</p>
+<p>Two methods are available for managing SSH keys:</p>
+<ul>
+<li><strong>Command-line app</strong> <code>cscs-key</code></li>
+<li><strong>Web Dashboard</strong>  <a href="https://user-account.cscs.ch/">user-account.cscs.ch</a></li>
+</ul>
+<p><a href="https://docs.cscs.ch/access/ssh/" id="ref-ssh-cli"></a></p>
+<h2 id="command-line-access">Command-line access<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#command-line-access" title="Permanent link">¶</a></h2>
+<p>The CLI interface to the SSH service is called <code>cscs-key</code>, an open source tool developed by CSCS to simplify managing keys.</p>
+<h3 id="installation">Installation<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#installation" title="Permanent link">¶</a></h3>
+<p>To install <code>cscs-key</code>, use Homebrew on macOS or Linux, or download a release binary from the <a href="https://github.com/eth-cscs/cscs-key/releases">GitHub releases page</a> on any platform.
+For a manual install, unpack the archive and place the binary in a directory on your <code>PATH</code> (<code>$HOME/.local/bin</code> on macOS/Linux, <code>$HOME\bin</code> on Windows).
+The snippets below set <code>TAG=v1.1.0</code> — replace it with the <a href="https://github.com/eth-cscs/cscs-key/releases">latest release tag</a>.
+On Windows, choose the PowerShell tab for the native binary, or the Linux tab when running inside <a href="https://learn.microsoft.com/en-us/windows/wsl/install">WSL</a>.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:4" style="--md-indicator-x: 346px; --md-indicator-width: 117px;"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio"><input id="__tabbed_1_2" name="__tabbed_1" type="radio"><input id="__tabbed_1_3" name="__tabbed_1" type="radio"><input id="__tabbed_1_4" name="__tabbed_1" type="radio"><div class="tabbed-labels tabbed-labels--linked"><label for="__tabbed_1_1"><a href="https://docs.cscs.ch/access/ssh/#__tabbed_1_1" tabindex="-1">Homebrew (macOS, Linux)</a></label><label for="__tabbed_1_2"><a href="https://docs.cscs.ch/access/ssh/#__tabbed_1_2" tabindex="-1">macOS (Apple Silicon)</a></label><label for="__tabbed_1_3"><a href="https://docs.cscs.ch/access/ssh/#__tabbed_1_3" tabindex="-1">Linux (x86_64)</a></label><label for="__tabbed_1_4"><a href="https://docs.cscs.ch/access/ssh/#__tabbed_1_4" tabindex="-1">Windows (x86_64, PowerShell)</a></label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-console highlight"><span class="filename">install cscs-key from Homebrew</span><pre id="__code_0"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_0 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-0-1"></a><span class="gp">$ </span>brew<span class="w"> </span>tap<span class="w"> </span>eth-cscs/tap
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="https://docs.cscs.ch/access/ssh/#__codelineno-0-2"></a><span class="gp">$ </span>brew<span class="w"> </span>install<span class="w"> </span>cscs-key
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="https://docs.cscs.ch/access/ssh/#__codelineno-0-3"></a><span class="gp">$ </span>cscs-key<span class="w"> </span>--version
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="https://docs.cscs.ch/access/ssh/#__codelineno-0-4"></a><span class="go">cscs-key 1.1.0</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-console highlight"><span class="filename">install cscs-key on Apple Silicon Mac</span><pre id="__code_1"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_1 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content" tabindex="0"><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-1-1"></a><span class="gp">$ </span><span class="nv">TAG</span><span class="o">=</span>v1.1.0
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="https://docs.cscs.ch/access/ssh/#__codelineno-1-2"></a><span class="gp">$ </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="nv">$HOME</span>/.local/bin
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="https://docs.cscs.ch/access/ssh/#__codelineno-1-3"></a><span class="gp">$ </span><span class="nb">cd</span><span class="w"> </span><span class="nv">$HOME</span>/.local/bin
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="https://docs.cscs.ch/access/ssh/#__codelineno-1-4"></a><span class="gp">$ </span>curl<span class="w"> </span>-LO<span class="w"> </span>https://github.com/eth-cscs/cscs-key/releases/download/<span class="nv">$TAG</span>/cscs-key-<span class="nv">$TAG</span>-aarch64-apple-darwin.tar.gz
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="https://docs.cscs.ch/access/ssh/#__codelineno-1-5"></a><span class="gp">$ </span>tar<span class="w"> </span>-xzvf<span class="w"> </span>cscs-key-<span class="nv">$TAG</span>-aarch64-apple-darwin.tar.gz
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="https://docs.cscs.ch/access/ssh/#__codelineno-1-6"></a><span class="gp">$ </span>rm<span class="w"> </span>cscs-key-<span class="nv">$TAG</span>-aarch64-apple-darwin.tar.gz
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="https://docs.cscs.ch/access/ssh/#__codelineno-1-7"></a><span class="gp">$ </span>cscs-key<span class="w"> </span>--version
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="https://docs.cscs.ch/access/ssh/#__codelineno-1-8"></a><span class="go">cscs-key 1.1.0</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-console highlight"><span class="filename">install cscs-key on x86_64 Linux</span><pre id="__code_2"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_2 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-2-1"></a><span class="gp">$ </span><span class="nv">TAG</span><span class="o">=</span>v1.1.0
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="https://docs.cscs.ch/access/ssh/#__codelineno-2-2"></a><span class="gp">$ </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="nv">$HOME</span>/.local/bin
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="https://docs.cscs.ch/access/ssh/#__codelineno-2-3"></a><span class="gp">$ </span><span class="nb">cd</span><span class="w"> </span><span class="nv">$HOME</span>/.local/bin
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="https://docs.cscs.ch/access/ssh/#__codelineno-2-4"></a><span class="gp">$ </span>curl<span class="w"> </span>-LO<span class="w"> </span>https://github.com/eth-cscs/cscs-key/releases/download/<span class="nv">$TAG</span>/cscs-key-<span class="nv">$TAG</span>-x86_64-unknown-linux-musl.tar.gz
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="https://docs.cscs.ch/access/ssh/#__codelineno-2-5"></a><span class="gp">$ </span>tar<span class="w"> </span>-xzvf<span class="w"> </span>cscs-key-<span class="nv">$TAG</span>-x86_64-unknown-linux-musl.tar.gz
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="https://docs.cscs.ch/access/ssh/#__codelineno-2-6"></a><span class="gp">$ </span>rm<span class="w"> </span>cscs-key-<span class="nv">$TAG</span>-x86_64-unknown-linux-musl.tar.gz
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="https://docs.cscs.ch/access/ssh/#__codelineno-2-7"></a><span class="gp">$ </span>cscs-key<span class="w"> </span>--version
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="https://docs.cscs.ch/access/ssh/#__codelineno-2-8"></a><span class="go">cscs-key 1.1.0</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-pwsh-session highlight"><span class="filename">install cscs-key on Windows</span><pre id="__code_3"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_3 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-3-1"></a><span class="gp">PS&gt; </span><span class="nv">$TAG</span> <span class="p">=</span> <span class="s2">"v1.1.0"</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="https://docs.cscs.ch/access/ssh/#__codelineno-3-2"></a><span class="gp">PS&gt; </span><span class="n">mkdir</span> <span class="nv">$HOME</span><span class="p">\</span><span class="n">bin</span> <span class="n">-Force</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="https://docs.cscs.ch/access/ssh/#__codelineno-3-3"></a><span class="gp">PS&gt; </span><span class="nb">cd </span><span class="nv">$HOME</span><span class="p">\</span><span class="n">bin</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="https://docs.cscs.ch/access/ssh/#__codelineno-3-4"></a><span class="gp">PS&gt; </span><span class="n">curl</span><span class="p">.</span><span class="n">exe</span> <span class="n">-LO</span> <span class="s2">"https://github.com/eth-cscs/cscs-key/releases/download/$TAG/cscs-key-$TAG-x86_64-pc-windows-msvc.zip"</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="https://docs.cscs.ch/access/ssh/#__codelineno-3-5"></a><span class="gp">PS&gt; </span><span class="nb">Expand-Archive</span> <span class="n">-Path</span> <span class="s2">"cscs-key-$TAG-x86_64-pc-windows-msvc.zip"</span> <span class="n">-DestinationPath</span> <span class="p">.</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="https://docs.cscs.ch/access/ssh/#__codelineno-3-6"></a><span class="gp">PS&gt; </span><span class="nb">Remove-Item</span> <span class="s2">"cscs-key-$TAG-x86_64-pc-windows-msvc.zip"</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="https://docs.cscs.ch/access/ssh/#__codelineno-3-7"></a><span class="gp">PS&gt; </span><span class="n">cscs-key</span> <span class="p">-</span><span class="n">-version</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="https://docs.cscs.ch/access/ssh/#__codelineno-3-8"></a><span class="go">cscs-key 1.1.0</span>
+</span></code></pre></div>
+</div>
+</div>
+<div class="tabbed-control tabbed-control--prev" hidden=""><button class="tabbed-button" tabindex="-1" aria-hidden="true"></button></div><div class="tabbed-control tabbed-control--next" hidden=""><button class="tabbed-button" tabindex="-1" aria-hidden="true"></button></div></div>
+<p>The final <code>cscs-key --version</code> step prints the version when the install worked.
+If it instead reports that <code>cscs-key</code> cannot be found, the install directory is not on your shell’s <code>PATH</code>.
+Add it once with the snippet below, then open a new terminal and try again.</p>
+<details class="note">
+<summary>Add the install directory to your <code>PATH</code></summary>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:3" style="--md-indicator-x: 0px; --md-indicator-width: 54px;"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio"><input id="__tabbed_2_2" name="__tabbed_2" type="radio"><input id="__tabbed_2_3" name="__tabbed_2" type="radio"><div class="tabbed-labels tabbed-labels--linked"><label for="__tabbed_2_1"><a href="https://docs.cscs.ch/access/ssh/#__tabbed_2_1" tabindex="-1">Zsh</a></label><label for="__tabbed_2_2"><a href="https://docs.cscs.ch/access/ssh/#__tabbed_2_2" tabindex="-1">Bash</a></label><label for="__tabbed_2_3"><a href="https://docs.cscs.ch/access/ssh/#__tabbed_2_3" tabindex="-1">PowerShell</a></label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-bash highlight"><span class="filename">add ~/.local/bin to PATH</span><pre id="__code_4"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_4 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-4-1"></a><span class="nb">echo</span><span class="w"> </span><span class="s1">'export PATH="$HOME/.local/bin:$PATH"'</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.zshrc
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><span class="filename">add ~/.local/bin to PATH</span><pre id="__code_5"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_5 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-5-1"></a><span class="nb">echo</span><span class="w"> </span><span class="s1">'export PATH="$HOME/.local/bin:$PATH"'</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.bashrc
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-powershell highlight"><span class="filename">add $HOME\bin to PATH for the current user</span><pre id="__code_6"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_6 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-6-1"></a><span class="nv">$userPath</span> <span class="p">=</span> <span class="no">[Environment]</span><span class="p">::</span><span class="n">GetEnvironmentVariable</span><span class="p">(</span><span class="s1">'PATH'</span><span class="p">,</span> <span class="s1">'User'</span><span class="p">)</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="https://docs.cscs.ch/access/ssh/#__codelineno-6-2"></a><span class="no">[Environment]</span><span class="p">::</span><span class="n">SetEnvironmentVariable</span><span class="p">(</span><span class="s1">'PATH'</span><span class="p">,</span> <span class="s2">"$userPath;$HOME\bin"</span><span class="p">,</span> <span class="s1">'User'</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+</div>
+<div class="tabbed-control tabbed-control--prev" hidden=""><button class="tabbed-button" tabindex="-1" aria-hidden="true"></button></div><div class="tabbed-control tabbed-control--next" hidden=""><button class="tabbed-button" tabindex="-1" aria-hidden="true"></button></div></div>
+</details>
+<p>You can also build it from source by cloning the git repository and following the instructions in the README.</p>
+<h3 id="setup-ssh-keys">Setup SSH keys<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#setup-ssh-keys" title="Permanent link">¶</a></h3>
+<p>First, generate the key pair using <a href="https://www.ssh.com/academy/ssh/keygen"><code>ssh-keygen</code></a>.</p>
+<div class="language-bash highlight"><pre id="__code_7"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_7 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-7-1"></a>ssh-keygen<span class="w"> </span>-t<span class="w"> </span>ed25519<span class="w"> </span>-f<span class="w"> </span>~/.ssh/cscs-key
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The key only needs to be generated once, and does not need to be run every time your signed key expires.</p>
+</div>
+<p>And add this key to your <a href="https://docs.cscs.ch/access/ssh/#ref-ssh-config">SSH config</a> or add it to your <a href="https://docs.cscs.ch/access/ssh/#ref-ssh-agent">SSH agent</a>.</p>
+<h3 id="usage">Usage<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#usage" title="Permanent link">¶</a></h3>
+<p>To see all available commands run:</p>
+<div class="language-console highlight"><pre id="__code_8"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_8 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-8-1"></a><span class="gp">$ </span>cscs-key<span class="w"> </span>--help
+</span></code></pre></div>
+<p>To sign an existing public key:
+</p><div class="language-console highlight"><pre id="__code_9"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_9 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-9-1"></a><span class="gp">$ </span>cscs-key<span class="w"> </span>sign
+</span></code></pre></div>
+The default private key is <code>~/.ssh/cscs-key</code>.
+You can specify a different private key using the <code>-f, --file</code> option.
+The default duration of the signed key is 1 day.
+You can specify a different duration using the <code>-d, --duration</code> option.
+Possible values are <code>1d</code> or <code>1min</code>.<p></p>
+<details class="note">
+<summary>generate a new key pair (deprecated)</summary>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Generating the SSH key on the server is deprecated and will be removed in the future.</p>
+</div>
+<p>It is possible to generate the SSH key locally and then sign it using the cscs-key sign command.
+</p><div class="language-console highlight"><pre id="__code_10"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_10 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-10-1"></a><span class="go">cscs-key gen</span>
+</span></code></pre></div>
+The default private key is <code>~/.ssh/cscs-key</code>.
+You can specify a different private key using the <code>-f, --file</code> option.
+The default duration of the signed key is 1 day.
+You can specify a different duration using the <code>-d, --duration</code> option.
+Possible values are <code>1d</code> or <code>1min</code>.<p></p>
+</details>
+<p>The <code>cscs-key</code> command can be used to summarise the status of all of your signed SSH keys:
+</p><div class="language-console highlight"><pre id="__code_11"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_11 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-11-1"></a><span class="gp">$ </span>cscs-key<span class="w"> </span>list
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="https://docs.cscs.ch/access/ssh/#__codelineno-11-2"></a><span class="go">╭────────────────────┬──────────┬────────────┬────────────────────────────╮</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="https://docs.cscs.ch/access/ssh/#__codelineno-11-3"></a><span class="go">│ Serial Number      │ Valid    │ Expiration │ Expire Time                │</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="https://docs.cscs.ch/access/ssh/#__codelineno-11-4"></a><span class="go">╞════════════════════╪══════════╪════════════╪════════════════════════════╡</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="https://docs.cscs.ch/access/ssh/#__codelineno-11-5"></a><span class="go">│ 202800351141013664 │ ✅ VALID │ in a day   │ 2026-04-01 16:15:20 +02:00 │</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="https://docs.cscs.ch/access/ssh/#__codelineno-11-6"></a><span class="go">├────────────────────┼──────────┼────────────┼────────────────────────────┤</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="https://docs.cscs.ch/access/ssh/#__codelineno-11-7"></a><span class="go">│ 202344484062892129 │ ✅ VALID │ in a day   │ 2026-04-01 16:09:12 +02:00 │</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="https://docs.cscs.ch/access/ssh/#__codelineno-11-8"></a><span class="go">╰────────────────────┴──────────┴────────────┴────────────────────────────╯</span>
+</span></code></pre></div><p></p>
+<p>The <code>-a, --all</code> flag will also include expired and revoked keys in the output of <code>cscs-key list</code>.</p>
+<p>Keys can be revoked using the serial number, which can be found using the <code>cscs-key list</code> command above.
+</p><div class="language-console highlight"><pre id="__code_12"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_12 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-12-1"></a><span class="gp">$ </span>cscs-key<span class="w"> </span>revoke<span class="w"> </span><span class="m">202800351141013664</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="https://docs.cscs.ch/access/ssh/#__codelineno-12-2"></a><span class="go">202800351141013664: ✅ Key revoked successfully</span>
+</span></code></pre></div>
+Use <code>-a, --all</code> option to revoke all valid keys.<p></p>
+<p>For more details about any command please refer to help with <code>-h, --help</code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The app supports three authentication methods:</p>
+<ul>
+<li><strong>OpenID Connect</strong>: Web browser window opens where user authenticates with the CSCS credentials.</li>
+<li><strong>OAuth2 Device Authorization Grant</strong> for remote headless machines, enabled by <code>--headless</code> flag.</li>
+<li><strong>API keys</strong>: For automation with service accounts. See <a class="autorefs autorefs-internal" href="https://docs.cscs.ch/access/service-accounts/#service-accounts">Service Accounts</a> for details.</li>
+</ul>
+</div>
+<h3 id="shell-completion">Shell completion<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#shell-completion" title="Permanent link">¶</a></h3>
+<p>To enable completion on every shell start, add to your shell config (e.g. <code>~/.bashrc</code>):</p>
+<div class="language-bash highlight"><pre id="__code_13"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_13 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-13-1"></a><span class="nb">source</span><span class="w"> </span>&lt;<span class="o">(</span>cscs-key<span class="w"> </span>completion<span class="w"> </span>&lt;shell&gt;<span class="o">)</span>
+</span></code></pre></div>
+<p>Supported shells: <code>bash</code>, <code>zsh</code>, <code>fish</code>, <code>powershell</code>, <code>elvish</code>.</p>
+<p><a href="https://docs.cscs.ch/access/ssh/" id="ref-ssh-key-management"></a></p>
+<h2 id="managing-ssh-keys-at-user-accountcscsch">Managing SSH keys at user-account.cscs.ch<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#managing-ssh-keys-at-user-accountcscsch" title="Permanent link">¶</a></h2>
+<p>The centralized key management dashboard at <a href="https://user-account.cscs.ch/">user-account.cscs.ch</a> allows you to generate, sign, list, and revoke SSH keys in your browser.</p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>The dashboard is an alternative to the <code>cscs-key</code> command line tool.
+If you are comfortable using <code>cscs-key</code> we recommend sticking to that interface.</p>
+</div>
+<h3 id="sign-your-existing-ssh-key">Sign your existing SSH key<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#sign-your-existing-ssh-key" title="Permanent link">¶</a></h3>
+<p>The recommended approach is to upload your existing SSH public key to be signed by CSCS.
+This avoids transferring private keys over the network and follows security best practices.</p>
+<ol>
+<li>Access <a href="https://user-account.cscs.ch/">user-account.cscs.ch</a> and log in with your CSCS credentials</li>
+<li>Navigate to <strong>SSH Keys</strong> and select <strong>Sign Key</strong></li>
+<li>Paste your existing SSH public key (e.g., from <code>~/.ssh/id_ed25519.pub</code> or <code>~/.ssh/id_rsa.pub</code>)</li>
+<li>Click <strong>Sign Key</strong> — CSCS will issue a signed certificate</li>
+<li>Download the signed certificate (<code>~/.ssh/cscs-key-cert.pub</code>)</li>
+<li>Your original private key remains on your machine</li>
+</ol>
+<div class="admonition info">
+<p class="admonition-title">Advantages</p>
+<ul>
+<li>Private key never leaves your machine</li>
+<li>Use your existing SSH key infrastructure</li>
+<li>Works with any SSH key type (RSA, ED25519, ECDSA)</li>
+<li>Recommended for security</li>
+</ul>
+</div>
+<details class="info">
+<summary>Generate a new key pair (deprecated)</summary>
+<p>If you don’t have an SSH key, CSCS can generate one for you.
+This method is currently supported but will be phased out in favor of signing existing keys.</p>
+<p>Steps:</p>
+<ol>
+<li>Access <a href="https://user-account.cscs.ch/">user-account.cscs.ch</a> and log in with your CSCS credentials</li>
+<li>Navigate to <strong>SSH Keys</strong> and select <strong>Generate Key</strong></li>
+<li>Optionally add a passphrase for additional security</li>
+<li>Click <strong>Generate</strong> — CSCS creates and downloads a new key pair</li>
+<li>Save the private key (<code>cscs-key</code>) to <code>~/.ssh/</code> with restricted permissions:
+   <div class="language-bash highlight"><pre id="__code_14"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_14 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-14-1"></a>chmod<span class="w"> </span><span class="m">0600</span><span class="w"> </span>~/.ssh/cscs-key
+</span></code></pre></div></li>
+</ol>
+<p><strong>Note:</strong> This method transfers the private key over HTTPS which should be avoided.</p>
+</details>
+<h3 id="key-validity-and-limits">Key validity and limits<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#key-validity-and-limits" title="Permanent link">¶</a></h3>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul>
+<li><strong>Validity</strong>: Keys are valid for 1 day by default</li>
+<li><strong>Renewal</strong>: Generate or sign a new key when needed for continued access</li>
+<li><strong>Limit</strong>: You can create up to 5 keys per day</li>
+</ul>
+</div>
+<h2 id="logging-in">Logging in<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#logging-in" title="Permanent link">¶</a></h2>
+<p>To ensure secure access, CSCS requires users to connect through the designated jump host Ela (<code>ela.cscs.ch</code>) before accessing any cluster.</p>
+<p>Before trying to log into your target cluster, you can first check that your SSH key works with Ela:
+</p><div class="language-text highlight"><pre id="__code_15"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_15 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-15-1"></a>ssh -i ~/.ssh/cscs-key ela.cscs.ch
+</span></code></pre></div><p></p>
+<p>To log into a target system at CSCS, you need to perform some additional setup to handle SSH key forwarding.
+There are two alternatives detailed below.</p>
+<p><a href="https://docs.cscs.ch/access/ssh/" id="ref-ssh-config"></a></p>
+<h3 id="adding-ela-as-a-jump-host-in-ssh-configuration">Adding Ela as a jump host in SSH configuration<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#adding-ela-as-a-jump-host-in-ssh-configuration" title="Permanent link">¶</a></h3>
+<p>This approach configures Ela as a jump host and creates aliases for the systems that you want to access in <code>~/.ssh/config</code> on your laptop or PC.
+The benefit of this approach is that once the <code>~/.ssh/config</code> file has been configured, no additional steps are required between creating or signing a new key, and logging in.</p>
+<p>Below is an example <code>~/.ssh/config</code> file that facilitates directly logging into the Daint, Santis and Clariden clusters using <code>ela.cscs.ch</code> as a Jump host:</p>
+<div class="language-text highlight"><pre id="__code_16"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_16 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-1"></a>Host ela
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-2"></a>    HostName ela.cscs.ch
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-3"></a>    User cscsusername
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-4"></a>    IdentityFile ~/.ssh/cscs-key
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-5"></a>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-6"></a>Host daint
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-7"></a>    HostName daint.alps.cscs.ch
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-8"></a>    User cscsusername
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-9"></a>    ProxyJump ela
+</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-10"></a>    IdentityFile ~/.ssh/cscs-key
+</span><span id="__span-16-11"><a id="__codelineno-16-11" name="__codelineno-16-11" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-11"></a>    IdentitiesOnly yes
+</span><span id="__span-16-12"><a id="__codelineno-16-12" name="__codelineno-16-12" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-12"></a>
+</span><span id="__span-16-13"><a id="__codelineno-16-13" name="__codelineno-16-13" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-13"></a>Host santis
+</span><span id="__span-16-14"><a id="__codelineno-16-14" name="__codelineno-16-14" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-14"></a>    HostName santis.alps.cscs.ch
+</span><span id="__span-16-15"><a id="__codelineno-16-15" name="__codelineno-16-15" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-15"></a>    ProxyJump ela
+</span><span id="__span-16-16"><a id="__codelineno-16-16" name="__codelineno-16-16" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-16"></a>    User cscsusername
+</span><span id="__span-16-17"><a id="__codelineno-16-17" name="__codelineno-16-17" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-17"></a>    IdentityFile ~/.ssh/cscs-key
+</span><span id="__span-16-18"><a id="__codelineno-16-18" name="__codelineno-16-18" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-18"></a>    IdentitiesOnly yes
+</span><span id="__span-16-19"><a id="__codelineno-16-19" name="__codelineno-16-19" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-19"></a>
+</span><span id="__span-16-20"><a id="__codelineno-16-20" name="__codelineno-16-20" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-20"></a>Host clariden
+</span><span id="__span-16-21"><a id="__codelineno-16-21" name="__codelineno-16-21" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-21"></a>    HostName clariden.alps.cscs.ch
+</span><span id="__span-16-22"><a id="__codelineno-16-22" name="__codelineno-16-22" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-22"></a>    ProxyJump ela
+</span><span id="__span-16-23"><a id="__codelineno-16-23" name="__codelineno-16-23" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-23"></a>    User cscsusername
+</span><span id="__span-16-24"><a id="__codelineno-16-24" name="__codelineno-16-24" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-24"></a>    IdentityFile ~/.ssh/cscs-key
+</span><span id="__span-16-25"><a id="__codelineno-16-25" name="__codelineno-16-25" href="https://docs.cscs.ch/access/ssh/#__codelineno-16-25"></a>    IdentitiesOnly yes
+</span></code></pre></div>
+<div class="admonition note">
+<p><img alt="❗" class="twemoji" src="./SSH - CSCS Documentation_files/2757.svg" title=":exclamation:"> Replace <code>cscsusername</code> with your CSCS username in the file above.</p>
+</div>
+<p>After saving this file, one can directly log into <code>daint.alps.cscs.ch</code> from your local system using the alias <code>daint</code>:</p>
+<div class="language-text highlight"><pre id="__code_17"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_17 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-17-1"></a>ssh daint
+</span></code></pre></div>
+<p><a href="https://docs.cscs.ch/access/ssh/" id="ref-ssh-agent"></a></p>
+<h3 id="using-ssh-agent">Using SSH agent<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#using-ssh-agent" title="Permanent link">¶</a></h3>
+<p>Alternatively, the <a href="https://www.ssh.com/academy/ssh/add-command">SSH authentication agent</a> can be configured to manage the keys.</p>
+<p>When using signed keys or newly generated keys, add the private key to the SSH agent:
+</p><div class="language-text highlight"><pre id="__code_18"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_18 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-18-1"></a>ssh-add -t 1d ~/.ssh/cscs-key
+</span></code></pre></div><p></p>
+<details class="warning">
+<summary>Could not open a connection to your authentication agent</summary>
+<p>If you see this error message, the SSH agent is not running.
+You can start it with the following command:
+</p><div class="language-text highlight"><pre id="__code_19"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_19 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-19-1"></a>eval $(ssh-agent)
+</span></code></pre></div><p></p>
+</details>
+<p>Once the key has been configured, log into Ela using the <code>-A</code> flag, and then jump to the target system:
+</p><div class="language-bash highlight"><pre id="__code_20"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_20 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-20-1"></a><span class="c1"># log in to ela.cscs.ch</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="https://docs.cscs.ch/access/ssh/#__codelineno-20-2"></a>ssh<span class="w"> </span>-A<span class="w"> </span>cscsusername@ela.cscs.ch
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="https://docs.cscs.ch/access/ssh/#__codelineno-20-3"></a>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="https://docs.cscs.ch/access/ssh/#__codelineno-20-4"></a><span class="c1"># then jump to a cluster</span>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="https://docs.cscs.ch/access/ssh/#__codelineno-20-5"></a>ssh<span class="w"> </span>daint.cscs.ch
+</span></code></pre></div><p></p>
+<h2 id="ssh-tunnel-to-a-service-on-alps-compute-nodes-via-ela">SSH tunnel to a service on Alps compute nodes via Ela<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#ssh-tunnel-to-a-service-on-alps-compute-nodes-via-ela" title="Permanent link">¶</a></h2>
+<p>If you have a server listening on a compute node in an Alps cluster and want to reach it from your local computer, you can do the following: allocate a node, start your server bound to <code>localhost</code>, open an SSH tunnel that jumps through <code>ela</code> to the cluster, then use <code>http://localhost:PORT</code> locally.
+Details on how to achieve this are below.</p>
+<p>Before starting, make sure you:</p>
+<ul>
+<li><a class="autorefs autorefs-internal" title="Using SSH agent" href="https://docs.cscs.ch/access/ssh/#using-ssh-agent">Have SSH keys loaded in your agent</a>.</li>
+<li>Have your CSCS username handy (replace <code>MYUSER</code> below).</li>
+<li>Have your server running on a compute node on Alps.
+  See the <a class="autorefs autorefs-internal" href="https://docs.cscs.ch/running/slurm/#slurm">Slurm documentation</a> for help on how to allocate a node and start your server on a compute node.</li>
+<li>Know the compute node ID (e.g., <code>nid006554</code>) and the port of your running server.</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Fast fixes when starting a server or before tunneling</p>
+<ul>
+<li>Port already in use locally: pick another PORT (e.g., 6007) in both your server and the tunnel command below.</li>
+<li>Auth prompts loop: verify your SSH MFA to CSCS and that your SSH agent is correctly set up and loaded with your keys.</li>
+</ul>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Binding to <code>127.0.0.1</code> ensures the service is only reachable via your tunnel</p>
+</div>
+<p>To open the tunnel from your local computer:</p>
+<div class="language-bash highlight"><pre id="__code_21"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_21 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content" tabindex="0"><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-21-1"></a><span class="nv">MYUSER</span><span class="o">=</span>cscsusername<span class="w">     </span><span class="c1"># your username at CSCS</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="https://docs.cscs.ch/access/ssh/#__codelineno-21-2"></a><span class="nv">NODE</span><span class="o">=</span>nid006554<span class="w">          </span><span class="c1"># obtained from salloc or srun</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="https://docs.cscs.ch/access/ssh/#__codelineno-21-3"></a><span class="nv">PORT</span><span class="o">=</span><span class="m">6006</span><span class="w">               </span><span class="c1"># example port</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="https://docs.cscs.ch/access/ssh/#__codelineno-21-4"></a><span class="nv">CLUSTER</span><span class="o">=</span>daint<span class="w">           </span><span class="c1"># cluster you want to reach</span>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="https://docs.cscs.ch/access/ssh/#__codelineno-21-5"></a>
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="https://docs.cscs.ch/access/ssh/#__codelineno-21-6"></a>ssh<span class="w"> </span>-N<span class="w"> </span>-J<span class="w"> </span><span class="si">${</span><span class="nv">MYUSER</span><span class="si">}</span>@ela.cscs.ch,<span class="si">${</span><span class="nv">MYUSER</span><span class="si">}</span>@<span class="si">${</span><span class="nv">CLUSTER</span><span class="si">}</span>.alps.cscs.ch<span class="w"> </span>-L<span class="w"> </span><span class="si">${</span><span class="nv">PORT</span><span class="si">}</span>:localhost:<span class="si">${</span><span class="nv">PORT</span><span class="si">}</span><span class="w"> </span><span class="si">${</span><span class="nv">MYUSER</span><span class="si">}</span>@<span class="si">${</span><span class="nv">NODE</span><span class="si">}</span>
+</span></code></pre></div>
+<p>The command blocks while the tunnel is open (that is expected).</p>
+<div class="admonition info">
+<p class="admonition-title">The first run may ask to trust the node’s host key—type <code>yes</code></p>
+</div>
+<p>With the service running and the tunnel open, you can now reach your service locally:</p>
+<ul>
+<li>Browser: <code>http://localhost:PORT</code></li>
+<li>Terminal: <code>curl localhost:PORT</code></li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Fast fix if the service doesn’t respond locally</p>
+<ul>
+<li>Service not responding: ensure the server binds to 127.0.0.1 and is running on the compute node; confirm NODE matches your current Slurm allocation.</li>
+</ul>
+</div>
+<p>To clean up afterwards:</p>
+<ul>
+<li>Stop the server (Ctrl-C on the compute node shell).</li>
+<li>End the Slurm allocation:
+  <div class="language-bash highlight"><pre id="__code_22"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_22 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-22-1"></a>scancel<span class="w"> </span><span class="nv">$SLURM_JOB_ID</span>
+</span></code></pre></div></li>
+<li>Close the tunnel (Ctrl-C in the tunnel terminal).</li>
+</ul>
+<p><a href="https://docs.cscs.ch/access/ssh/" id="ref-ssh-revoke"></a></p>
+<h2 id="revoking-ssh-keys">Revoking SSH keys<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#revoking-ssh-keys" title="Permanent link">¶</a></h2>
+<p>You can revoke SSH keys when they are no longer needed or if compromised.</p>
+<h3 id="revoke-via-web-dashboard">Revoke via web dashboard<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#revoke-via-web-dashboard" title="Permanent link">¶</a></h3>
+<ol>
+<li>Access <a href="https://user-account.cscs.ch/">user-account.cscs.ch</a> and log in</li>
+<li>Navigate to <strong>SSH Keys</strong> to view your active keys</li>
+<li>Click the <strong>Revoke</strong> button next to the key you want to revoke</li>
+<li>Confirm the revocation</li>
+</ol>
+<h3 id="revoke-via-cli">Revoke via CLI<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#revoke-via-cli" title="Permanent link">¶</a></h3>
+<p>To revoke a key using the command-line interface:</p>
+<div class="language-bash highlight"><pre id="__code_23"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_23 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-23-1"></a><span class="c1"># Revoke a single key by serial number</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="https://docs.cscs.ch/access/ssh/#__codelineno-23-2"></a>cscs-key<span class="w"> </span>revoke<span class="w"> </span>--serial<span class="w"> </span>&lt;serial-number&gt;
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="https://docs.cscs.ch/access/ssh/#__codelineno-23-3"></a>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="https://docs.cscs.ch/access/ssh/#__codelineno-23-4"></a><span class="c1"># Revoke all active keys</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="https://docs.cscs.ch/access/ssh/#__codelineno-23-5"></a>cscs-key<span class="w"> </span>revoke-all
+</span></code></pre></div>
+<p>The revocation takes effect immediately across all CSCS systems.</p>
+<p><a href="https://docs.cscs.ch/access/ssh/" id="ref-ssh-known-issues"></a></p>
+<h2 id="known-issues">Known issues<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#known-issues" title="Permanent link">¶</a></h2>
+<details class="warning">
+<summary>too many authentication failures</summary>
+<p>You may have too many keys in your SSH agent.
+Remove the unused keys from the agent or flush them all with the following command:
+</p><div class="language-bash highlight"><pre id="__code_24"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_24 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-24-1"></a>ssh-add<span class="w"> </span>-D
+</span></code></pre></div><p></p>
+</details>
+<details class="warning">
+<summary>Permission denied</summary>
+<p>This might indicate that your key has expired or is not valid.
+Check the validity of your key at <a href="https://user-account.cscs.ch/">user-account.cscs.ch</a>.
+If expired, sign or generate a new key.</p>
+</details>
+<details class="warning">
+<summary>Could not open a connection to your authentication agent</summary>
+<p>If you see this error when adding keys to the ssh-agent, please make sure the agent is up, and if not bring up the agent using the following command:
+</p><div class="language-bash highlight"><pre id="__code_25"><span></span><nav class="md-code__nav"><button class="md-code__button" title="Copy to clipboard" data-clipboard-target="#__code_25 &gt; code" data-md-type="copy"></button></nav><code class="md-code__content"><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="https://docs.cscs.ch/access/ssh/#__codelineno-25-1"></a><span class="nb">eval</span><span class="w"> </span><span class="k">$(</span>ssh-agent<span class="k">)</span>
+</span></code></pre></div><p></p>
+</details>
+<p><a href="https://docs.cscs.ch/access/ssh/" id="ref-ssh-legacy"></a></p>
+<h2 id="legacy-old-ssh-key-management">Legacy: old SSH key management<a class="headerlink" href="https://docs.cscs.ch/access/ssh/#legacy-old-ssh-key-management" title="Permanent link">¶</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Retired from Q2 2026</p>
+<p>The old SSHService (<a href="https://sshservice.cscs.ch/">sshservice.cscs.ch</a>) and the associated command-line script have been retired starting Q2 2026.
+All users must use the <a href="https://docs.cscs.ch/access/ssh/#ref-ssh-key-management">new key management dashboard</a> or <a href="https://docs.cscs.ch/access/ssh/#ref-ssh-cli">CLI</a>.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" style="top: 64px;" hidden="" tabindex="-1">
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.action.edit", "navigation.indexes", "search.share", "navigation.instant", "navigation.tracking", "navigation.path", "navigation.top", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="./SSH - CSCS Documentation_files/bundle.79ae519e.min.js.下载"></script>
+      
+        <script src="./SSH - CSCS Documentation_files/mathjax.js.下载"></script>
+      
+        <script src="./SSH - CSCS Documentation_files/tex-mml-chtml.js.下载"></script>
+      
+    
+  
+</body><div id="immersive-translate-popup" style="all: initial"><template shadowrootmode="open"><div id="mount" style="display: block;"><div class="imt-fb-container right imt-notranslate " data-theme="dark" style="z-index: 2147483637; pointer-events: none; right: 0px; top: 108px; display: flex;"><div class="btn-animate" style="transform: translateX(60px); opacity: 1;"><div class="imt-fb-btn imt-fb-more-button imt-fb-side"><div class=" btn-animate" style="position: relative; pointer-events: all; display: inline-block;"><div><svg class="imt-fb-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M9.65332 13.3477C10.4097 13.4245 11 14.0632 11 14.8398V18.8398L10.9922 18.9932C10.9205 19.6992 10.3593 20.2604 9.65332 20.332L9.5 20.3398H5.5C4.72334 20.3398 4.08461 19.7496 4.00781 18.9932L4 18.8398V14.8398C4 14.0114 4.67157 13.3398 5.5 13.3398H9.5L9.65332 13.3477ZM18.6533 13.3477C19.4097 13.4245 20 14.0632 20 14.8398V18.8398L19.9922 18.9932C19.9205 19.6992 19.3593 20.2604 18.6533 20.332L18.5 20.3398H14.5C13.7233 20.3398 13.0846 19.7496 13.0078 18.9932L13 18.8398V14.8398C13 14.0114 13.6716 13.3398 14.5 13.3398H18.5L18.6533 13.3477ZM5.5 14.3398C5.22386 14.3398 5 14.5637 5 14.8398V18.8398C5 19.116 5.22386 19.3398 5.5 19.3398H9.5C9.77614 19.3398 10 19.116 10 18.8398V14.8398C10 14.5637 9.77614 14.3398 9.5 14.3398H5.5ZM14.5 14.3398C14.2239 14.3398 14 14.5637 14 14.8398V18.8398C14 19.116 14.2239 19.3398 14.5 19.3398H18.5C18.7761 19.3398 19 19.116 19 18.8398V14.8398C19 14.5637 18.7761 14.3398 18.5 14.3398H14.5ZM9.65332 4.34766C10.4097 4.42445 11 5.06318 11 5.83984V9.83984L10.9922 9.99316C10.9205 10.6992 10.3593 11.2604 9.65332 11.332L9.5 11.3398H5.5C4.72334 11.3398 4.08461 10.7496 4.00781 9.99316L4 9.83984V5.83984C4 5.01142 4.67157 4.33984 5.5 4.33984H9.5L9.65332 4.34766ZM16.1484 3.18848C16.2521 2.83834 16.7479 2.83834 16.8516 3.18848L17.3281 4.79785C17.5079 5.40507 17.9648 5.89104 18.5596 6.1084L20.0576 6.65625C20.3786 6.77361 20.3785 7.22732 20.0576 7.34473L18.5596 7.89258C17.9648 8.10991 17.5079 8.59598 17.3281 9.20312L16.8516 10.8125C16.7479 11.1626 16.2521 11.1626 16.1484 10.8125L15.6719 9.20312C15.4921 8.59598 15.0352 8.10991 14.4404 7.89258L12.9424 7.34473C12.6215 7.22732 12.6214 6.77361 12.9424 6.65625L14.4404 6.1084C15.0352 5.89104 15.4921 5.40507 15.6719 4.79785L16.1484 3.18848ZM5.5 5.33984C5.22386 5.33984 5 5.5637 5 5.83984V9.83984C5 10.116 5.22386 10.3398 5.5 10.3398H9.5C9.77614 10.3398 10 10.116 10 9.83984V5.83984C10 5.5637 9.77614 5.33984 9.5 5.33984H5.5Z" fill="#ED6D8F"></path></svg><svg class="imt-fb-pin-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="7" fill="#B1B1B166"></circle><g transform="translate(2, 2)"><mask id="mask0_39789_2446" maskUnits="userSpaceOnUse" x="0" y="0" width="10" height="10" style="mask-type: alpha;"><rect width="10" height="10" fill="#D9D9D9"></rect></mask><g mask="url(#mask0_39789_2446)"><path d="M4.99984 6.7487C5.48595 6.7487 5.89914 6.57856 6.23942 6.23828C6.5797 5.898 6.74984 5.48481 6.74984 4.9987C6.74984 4.51259 6.5797 4.09939 6.23942 3.75911C5.89914 3.41884 5.48595 3.2487 4.99984 3.2487C4.51373 3.2487 4.10053 3.41884 3.76025 3.75911C3.41998 4.09939 3.24984 4.51259 3.24984 4.9987C3.24984 5.48481 3.41998 5.898 3.76025 6.23828C4.10053 6.57856 4.51373 6.7487 4.99984 6.7487ZM5.00171 5.77995C4.78518 5.77995 4.60053 5.70418 4.44775 5.55266C4.29498 5.40106 4.21859 5.21703 4.21859 5.00057C4.21859 4.78405 4.29435 4.59939 4.44588 4.44661C4.59748 4.29384 4.7815 4.21745 4.99796 4.21745C5.21449 4.21745 5.39914 4.29321 5.55192 4.44474C5.7047 4.59634 5.78109 4.78036 5.78109 4.99682C5.78109 5.21335 5.70532 5.398 5.5538 5.55078C5.4022 5.70356 5.21817 5.77995 5.00171 5.77995ZM4.99984 8.32161C4.05539 8.32161 3.18387 8.07335 2.38525 7.57682C1.58664 7.0803 0.958171 6.41536 0.499837 5.58203C0.444282 5.49175 0.406087 5.39707 0.385254 5.29797C0.364421 5.19887 0.354004 5.09991 0.354004 5.00109C0.354004 4.90227 0.364421 4.80252 0.385254 4.70182C0.406087 4.60113 0.444282 4.50564 0.499837 4.41536C0.958171 3.58203 1.58664 2.9171 2.38525 2.42057C3.18387 1.92405 4.05539 1.67578 4.99984 1.67578C5.94428 1.67578 6.81581 1.92405 7.61442 2.42057C8.41303 2.9171 9.0415 3.58203 9.49984 4.41536C9.55539 4.50564 9.59359 4.60033 9.61442 4.69943C9.63525 4.79852 9.64567 4.89748 9.64567 4.9963C9.64567 5.09512 9.63525 5.19488 9.61442 5.29557C9.59359 5.39627 9.55539 5.49175 9.49984 5.58203C9.0415 6.41536 8.41303 7.0803 7.61442 7.57682C6.81581 8.07335 5.94428 8.32161 4.99984 8.32161ZM5.00077 7.2487C5.77098 7.2487 6.48248 7.04557 7.13525 6.63932C7.78803 6.23307 8.2915 5.6862 8.64567 4.9987C8.2915 4.3112 7.78772 3.76432 7.13432 3.35807C6.48091 2.95182 5.76911 2.7487 4.9989 2.7487C4.22869 2.7487 3.5172 2.95182 2.86442 3.35807C2.21164 3.76432 1.70817 4.3112 1.354 4.9987C1.70817 5.6862 2.21196 6.23307 2.86536 6.63932C3.51876 7.04557 4.23057 7.2487 5.00077 7.2487Z" fill="white"></path></g></g></svg></div></div></div></div><div hidden="" class="imt-no-events " id="manga-button" style="position: relative; opacity: 0.7;"><div class="imt-manga-button btn-animate" style="transform: translateX(2px);"><div style="position: relative;"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none" style="vertical-align: middle;"><path d="M14.8853 4.92364C14.8853 4.92364 16.3905 10.4362 22.6668 4C22.6668 4 20.3381 10.8907 25.3364 10.0843C25.3364 10.0843 22.0563 15.6994 29 18.0599C29 18.0599 22.9934 19.306 21.1617 28C21.1617 28 17.7679 24.54 14.8853 27.3549C14.8853 27.3549 13.3233 23.5724 7.33097 26.27C7.33097 26.27 10.1141 20.6549 4.83179 21.0507C4.83179 21.0507 7.16057 18.8955 3 15.9047C3 15.9047 7.50137 16.1833 6.33697 11.7117C6.33697 11.7117 10.0005 12.3421 8.66576 6.82957C8.65156 6.81491 12.4855 9.80574 14.8853 4.92364Z" fill="#ED6D8F"></path><path d="M20.8599 13.7022C20.885 13.1361 20.9543 12.5713 20.9959 12.0052C21.0337 11.568 20.8107 11.2794 20.3876 11.18C20.0759 11.1013 19.7508 11.0867 19.433 11.137C19.1951 11.1945 18.9542 11.2396 18.7113 11.2721C18.2403 11.3028 17.9973 11.5275 17.9796 11.988C17.977 12.0833 17.9596 12.1777 17.928 12.268C17.3034 13.9102 16.6774 15.5499 16.0503 17.1873C16.0301 17.2401 16.0062 17.2904 15.9671 17.3776C15.7291 16.8975 15.4281 16.4898 15.2745 15.9986C14.8073 14.5152 14.3186 13.033 13.8312 11.5594C13.6826 11.1112 13.3489 10.9344 12.8754 11.0216C12.7889 11.0365 12.7008 11.0398 12.6134 11.0314C12.2241 10.9938 11.8311 11.0404 11.4623 11.1677C11.0946 11.2991 10.9498 11.557 11.0152 11.9254C11.0428 12.0371 11.0643 12.1503 11.0795 12.2643C11.1223 13.1902 11.1777 14.1087 11.2054 15.0321C11.257 16.7992 11.2117 18.5651 11.0858 20.3284C11.0644 20.6354 11.0304 20.9424 11.0228 21.2494C11.0115 21.6092 11.1613 21.7811 11.5266 21.8143C11.9976 21.8573 12.4711 21.8708 12.9421 21.9088C13.0309 21.9201 13.121 21.9003 13.1962 21.8528C13.2714 21.8053 13.3268 21.7334 13.3527 21.6497C13.3996 21.5394 13.4252 21.4216 13.4282 21.3022C13.4295 20.8258 13.4207 20.3493 13.4081 19.8741C13.393 19.3264 13.3917 18.7763 13.3438 18.231C13.2857 17.5839 13.266 16.934 13.2847 16.2847C13.2847 16.2466 13.291 16.2073 13.2985 16.1312C13.3338 16.2024 13.3514 16.2356 13.3665 16.2712C13.9017 17.5228 14.3617 18.8037 14.7443 20.1074C14.7928 20.2421 14.7928 20.3889 14.7443 20.5237C14.6322 20.8196 14.7141 21.037 14.9659 21.1377C15.4445 21.3268 15.9331 21.4926 16.4155 21.6731C16.4865 21.7033 16.566 21.7091 16.6408 21.6895C16.7157 21.6698 16.7815 21.6259 16.8273 21.565C16.9085 21.4643 16.9743 21.3526 17.0225 21.2335C17.0537 21.1374 17.0798 21.0399 17.1006 20.9412C17.3185 20.2425 17.5653 19.5499 17.7517 18.8438C17.9785 17.9723 18.2624 17.1158 18.6018 16.2798C18.6201 16.2439 18.6411 16.2094 18.6647 16.1766C18.6761 16.2319 18.6761 16.254 18.6761 16.2761C18.6345 17.59 18.5955 18.8978 18.5501 20.2056C18.5363 20.5949 18.491 20.9829 18.4809 21.3722C18.4721 21.705 18.6207 21.8708 18.9557 21.9002C19.4355 21.9432 19.9191 21.9592 20.4002 21.9973C20.4888 22.0079 20.5784 21.9875 20.653 21.9399C20.7277 21.8922 20.7827 21.8203 20.8082 21.7369C20.8531 21.6305 20.8766 21.5167 20.8775 21.4017C20.88 20.7668 20.8674 20.132 20.8674 19.4971C20.8662 19.2846 20.8687 19.0722 20.8523 18.8622C20.8158 18.3968 20.7264 17.9314 20.7339 17.4685C20.7515 16.2122 20.8044 14.9572 20.8599 13.7022Z" fill="white"></path></svg></div></div></div><div style="display: flex; align-items: center; flex-direction: row; gap: 8px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" style="display: block; opacity: 0;"><g clip-path="url(#clip0_38845_9816)"><path d="M7 14C5.14348 14 3.36301 13.2625 2.05025 11.9497C0.737498 10.637 0 8.85652 0 7C0 5.14348 0.737498 3.36301 2.05025 2.05025C3.36301 0.737498 5.14348 0 7 0C8.85652 0 10.637 0.737498 11.9497 2.05025C13.2625 3.36301 14 5.14348 14 7C14 8.85652 13.2625 10.637 11.9497 11.9497C10.637 13.2625 8.85652 14 7 14Z" fill="#B1B1B1" fill-opacity="0.4"></path><path d="M6.11754 7.00052L4.18254 5.06452C4.06786 4.94725 4.00406 4.78948 4.00498 4.62546C4.00589 4.46144 4.07145 4.3044 4.18744 4.18841C4.30342 4.07243 4.46046 4.00687 4.62448 4.00595C4.7885 4.00503 4.94627 4.06884 5.06354 4.18352L6.99954 6.11852L8.93554 4.18352C8.99315 4.1246 9.06188 4.07771 9.13774 4.04554C9.2136 4.01337 9.29508 3.99656 9.37748 3.9961C9.45988 3.99564 9.54155 4.01153 9.61777 4.04285C9.69398 4.07417 9.76323 4.1203 9.82149 4.17857C9.87976 4.23683 9.92589 4.30608 9.95721 4.38229C9.98853 4.45851 10.0044 4.54018 10.004 4.62258C10.0035 4.70497 9.98669 4.78646 9.95452 4.86232C9.92235 4.93818 9.87545 5.00691 9.81654 5.06452L7.88154 7.00052L9.81654 8.93652C9.93122 9.05379 9.99502 9.21155 9.99411 9.37557C9.99319 9.5396 9.92763 9.69664 9.81164 9.81262C9.69566 9.9286 9.53862 9.99417 9.3746 9.99508C9.21058 9.996 9.05281 9.9322 8.93554 9.81752L6.99954 7.88252L5.06354 9.81752C5.00593 9.87643 4.93721 9.92333 4.86135 9.9555C4.78549 9.98767 4.704 10.0045 4.6216 10.0049C4.5392 10.0054 4.45753 9.9895 4.38131 9.95818C4.3051 9.92686 4.23585 9.88073 4.17759 9.82247C4.11932 9.7642 4.0732 9.69496 4.04188 9.61874C4.01056 9.54253 3.99467 9.46086 3.99513 9.37846C3.99559 9.29606 4.01239 9.21457 4.04456 9.13871C4.07673 9.06285 4.12363 8.99413 4.18254 8.93652L6.11754 7.00052Z" fill="white"></path></g><defs><clippath id="clip0_38845_9816"><rect width="14" height="14" fill="white"></rect></clippath></defs></svg><div style="position: relative;"><div class="imt-fb-btn right btn-animate  " dir="ltr" style="opacity: 0.7;"><div class=" " style="position: relative; pointer-events: all; display: inline-block;"><div><div class="imt-fb-btn-content"><svg class="imt-fb-logo-img imt-fb-logo-img-big-bg" width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 14C0 6.26801 6.26801 0 14 0C21.732 0 28 6.26801 28 14C28 21.732 21.732 28 14 28C6.26801 28 0 21.732 0 14Z" fill="#ED6D8F"></path><path d="M7.30921 15.6381C7.53044 15.6381 7.70979 15.8175 7.70979 16.0387V19.0088C7.70979 19.934 8.45993 20.684 9.38526 20.684H11.7557C11.9769 20.684 12.1562 20.8634 12.1562 21.0846V22.152C12.1562 22.3732 11.9769 22.5526 11.7557 22.5526H9.38526C7.42782 22.5526 5.84099 20.966 5.84099 19.0088V16.0387C5.84099 15.8175 6.02034 15.6381 6.24157 15.6381H7.30921ZM18.9876 12.6944C19.1515 12.6944 19.2989 12.7943 19.3597 12.9466L22.9711 22.0036C23.076 22.2667 22.8822 22.5526 22.599 22.5526H21.4672C21.3016 22.5526 21.153 22.4506 21.0934 22.2961L20.2724 20.1673C20.2128 20.0128 20.0643 19.9108 19.8986 19.9108H16.7508C16.5852 19.9108 16.4366 20.0128 16.377 20.1673L15.556 22.2961C15.4964 22.4506 15.3478 22.5526 15.1822 22.5526H14.0504C13.7672 22.5526 13.5734 22.2667 13.6783 22.0036L17.2897 12.9466C17.3505 12.7943 17.4979 12.6944 17.6618 12.6944H18.9876ZM18.5116 15.6017C18.4456 15.4308 18.2038 15.4308 18.1378 15.6017L17.3016 17.7699C17.251 17.9011 17.3478 18.0423 17.4885 18.0423H19.1609C19.3016 18.0423 19.3984 17.9012 19.3478 17.7699L18.5116 15.6017ZM9.69589 5.30028C9.79943 4.8999 10.368 4.89991 10.4715 5.30028L11.1086 7.76368C11.3244 8.59845 11.9396 9.27221 12.7513 9.56299L14.9019 10.3334C15.2559 10.4602 15.2559 10.9608 14.9019 11.0876L12.7513 11.8581C11.9396 12.1489 11.3244 12.8226 11.1086 13.6574L10.4715 16.1208C10.368 16.5212 9.79943 16.5212 9.69589 16.1208L9.05884 13.6574C8.84297 12.8226 8.22786 12.1489 7.41615 11.8581L5.26548 11.0876C4.91151 10.9608 4.91151 10.4602 5.26548 10.3334L7.41615 9.56299C8.22786 9.27221 8.84297 8.59844 9.05884 7.76368L9.69589 5.30028ZM18.0064 6.20485C19.9639 6.20485 21.5507 7.79145 21.5507 9.74861V11.281C21.5507 11.5022 21.3713 11.6816 21.1501 11.6816H20.0825C19.8612 11.6816 19.6819 11.5022 19.6819 11.281V9.74861C19.6819 8.82341 18.9318 8.07338 18.0064 8.07338H14.4343C14.2131 8.07338 14.0337 7.89403 14.0337 7.6728V6.60543C14.0337 6.3842 14.2131 6.20486 14.4343 6.20485H18.0064Z" fill="white"></path></svg></div></div></div></div><div title="关闭悬浮球" class="imt-fb-close-button" style="opacity: 0; pointer-events: none;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none"><g clip-path="url(#clip0_38845_9816)"><path d="M7 14C5.14348 14 3.36301 13.2625 2.05025 11.9497C0.737498 10.637 0 8.85652 0 7C0 5.14348 0.737498 3.36301 2.05025 2.05025C3.36301 0.737498 5.14348 0 7 0C8.85652 0 10.637 0.737498 11.9497 2.05025C13.2625 3.36301 14 5.14348 14 7C14 8.85652 13.2625 10.637 11.9497 11.9497C10.637 13.2625 8.85652 14 7 14Z" fill="#B1B1B1" fill-opacity="0.4"></path><path d="M6.11754 7.00052L4.18254 5.06452C4.06786 4.94725 4.00406 4.78948 4.00498 4.62546C4.00589 4.46144 4.07145 4.3044 4.18744 4.18841C4.30342 4.07243 4.46046 4.00687 4.62448 4.00595C4.7885 4.00503 4.94627 4.06884 5.06354 4.18352L6.99954 6.11852L8.93554 4.18352C8.99315 4.1246 9.06188 4.07771 9.13774 4.04554C9.2136 4.01337 9.29508 3.99656 9.37748 3.9961C9.45988 3.99564 9.54155 4.01153 9.61777 4.04285C9.69398 4.07417 9.76323 4.1203 9.82149 4.17857C9.87976 4.23683 9.92589 4.30608 9.95721 4.38229C9.98853 4.45851 10.0044 4.54018 10.004 4.62258C10.0035 4.70497 9.98669 4.78646 9.95452 4.86232C9.92235 4.93818 9.87545 5.00691 9.81654 5.06452L7.88154 7.00052L9.81654 8.93652C9.93122 9.05379 9.99502 9.21155 9.99411 9.37557C9.99319 9.5396 9.92763 9.69664 9.81164 9.81262C9.69566 9.9286 9.53862 9.99417 9.3746 9.99508C9.21058 9.996 9.05281 9.9322 8.93554 9.81752L6.99954 7.88252L5.06354 9.81752C5.00593 9.87643 4.93721 9.92333 4.86135 9.9555C4.78549 9.98767 4.704 10.0045 4.6216 10.0049C4.5392 10.0054 4.45753 9.9895 4.38131 9.95818C4.3051 9.92686 4.23585 9.88073 4.17759 9.82247C4.11932 9.7642 4.0732 9.69496 4.04188 9.61874C4.01056 9.54253 3.99467 9.46086 3.99513 9.37846C3.99559 9.29606 4.01239 9.21457 4.04456 9.13871C4.07673 9.06285 4.12363 8.99413 4.18254 8.93652L6.11754 7.00052Z" fill="white"></path></g><defs><clippath id="clip0_38845_9816"><rect width="14" height="14" fill="white"></rect></clippath></defs></svg></div></div><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none" style="display: none; opacity: 0;"><g clip-path="url(#clip0_38845_9816)"><path d="M7 14C5.14348 14 3.36301 13.2625 2.05025 11.9497C0.737498 10.637 0 8.85652 0 7C0 5.14348 0.737498 3.36301 2.05025 2.05025C3.36301 0.737498 5.14348 0 7 0C8.85652 0 10.637 0.737498 11.9497 2.05025C13.2625 3.36301 14 5.14348 14 7C14 8.85652 13.2625 10.637 11.9497 11.9497C10.637 13.2625 8.85652 14 7 14Z" fill="#B1B1B1" fill-opacity="0.4"></path><path d="M6.11754 7.00052L4.18254 5.06452C4.06786 4.94725 4.00406 4.78948 4.00498 4.62546C4.00589 4.46144 4.07145 4.3044 4.18744 4.18841C4.30342 4.07243 4.46046 4.00687 4.62448 4.00595C4.7885 4.00503 4.94627 4.06884 5.06354 4.18352L6.99954 6.11852L8.93554 4.18352C8.99315 4.1246 9.06188 4.07771 9.13774 4.04554C9.2136 4.01337 9.29508 3.99656 9.37748 3.9961C9.45988 3.99564 9.54155 4.01153 9.61777 4.04285C9.69398 4.07417 9.76323 4.1203 9.82149 4.17857C9.87976 4.23683 9.92589 4.30608 9.95721 4.38229C9.98853 4.45851 10.0044 4.54018 10.004 4.62258C10.0035 4.70497 9.98669 4.78646 9.95452 4.86232C9.92235 4.93818 9.87545 5.00691 9.81654 5.06452L7.88154 7.00052L9.81654 8.93652C9.93122 9.05379 9.99502 9.21155 9.99411 9.37557C9.99319 9.5396 9.92763 9.69664 9.81164 9.81262C9.69566 9.9286 9.53862 9.99417 9.3746 9.99508C9.21058 9.996 9.05281 9.9322 8.93554 9.81752L6.99954 7.88252L5.06354 9.81752C5.00593 9.87643 4.93721 9.92333 4.86135 9.9555C4.78549 9.98767 4.704 10.0045 4.6216 10.0049C4.5392 10.0054 4.45753 9.9895 4.38131 9.95818C4.3051 9.92686 4.23585 9.88073 4.17759 9.82247C4.11932 9.7642 4.0732 9.69496 4.04188 9.61874C4.01056 9.54253 3.99467 9.46086 3.99513 9.37846C3.99559 9.29606 4.01239 9.21457 4.04456 9.13871C4.07673 9.06285 4.12363 8.99413 4.18254 8.93652L6.11754 7.00052Z" fill="white"></path></g><defs><clippath id="clip0_38845_9816"><rect width="14" height="14" fill="white"></rect></clippath></defs></svg></div><div class="btn-animate" style="margin-top: 10px; transform: translateX(60px);"><div class=" btn-animate" style="position: relative; pointer-events: all; display: inline-block;"><div><div class="imt-fb-round-button"><svg class="imt-fb-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" style="width: 24px; height: 24px;"><path d="M17 8.66797H11.375" stroke="#ED6D8F" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12.625 15.332L7 15.332" stroke="#ED6D8F" stroke-linecap="round" stroke-linejoin="round"></path><path d="M15.125 17C16.1605 17 17 16.1605 17 15.125C17 14.0895 16.1605 13.25 15.125 13.25C14.0895 13.25 13.25 14.0895 13.25 15.125C13.25 16.1605 14.0895 17 15.125 17Z" stroke="#ED6D8F" stroke-linecap="round" stroke-linejoin="round"></path><path d="M8.875 10.75C9.91053 10.75 10.75 9.91053 10.75 8.875C10.75 7.83947 9.91053 7 8.875 7C7.83947 7 7 7.83947 7 8.875C7 9.91053 7.83947 10.75 8.875 10.75Z" stroke="#ED6D8F" stroke-linecap="round" stroke-linejoin="round"></path><rect x="3" y="4" width="18" height="16" rx="1.66667" stroke="#ED6D8F"></rect></svg></div></div></div></div><div class="btn-animate" style="margin-top: 10px; transform: translateX(60px);"><div class=" btn-animate" style="position: relative; pointer-events: all; display: inline-block;"><div><div class="imt-fb-round-button"><svg class="imt-fb-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none"><mask id="mask0_43829_2633" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20" style="mask-type: alpha;"><rect width="20" height="20" fill="#D9D9D9"></rect></mask><g mask="url(#mask0_43829_2633)"><path d="M9.99546 12.2609C10.1639 12.2609 10.305 12.2055 10.4188 12.0946C10.5327 11.9838 10.5896 11.8441 10.5896 11.6755C10.5896 11.507 10.5342 11.3659 10.4234 11.2521C10.3124 11.1384 10.1727 11.0815 10.0042 11.0815C9.83574 11.0815 9.69463 11.1369 9.58088 11.2478C9.46699 11.3586 9.41005 11.4982 9.41005 11.6667C9.41005 11.8353 9.46546 11.9765 9.5763 12.0903C9.68727 12.204 9.82699 12.2609 9.99546 12.2609ZM9.99546 10.1936C10.148 10.1936 10.2771 10.1418 10.3828 10.0382C10.4886 9.93443 10.5415 9.80568 10.5415 9.65193V5.20318C10.5415 5.04943 10.49 4.92075 10.3871 4.81713C10.2844 4.71338 10.1567 4.66151 10.0042 4.66151C9.85171 4.66151 9.72261 4.71338 9.61692 4.81713C9.51109 4.92075 9.45817 5.04943 9.45817 5.20318V9.65193C9.45817 9.80568 9.50963 9.93443 9.61255 10.0382C9.71532 10.1418 9.84296 10.1936 9.99546 10.1936ZM5.03192 14.5846L3.55359 16.063C3.34262 16.2739 3.10032 16.3221 2.82671 16.2076C2.55324 16.093 2.4165 15.8864 2.4165 15.5878V3.75776C2.4165 3.38262 2.54602 3.06554 2.80505 2.80651C3.06407 2.54748 3.38116 2.41797 3.7563 2.41797H16.2434C16.6185 2.41797 16.9356 2.54748 17.1946 2.80651C17.4537 3.06554 17.5832 3.38262 17.5832 3.75776V13.2448C17.5832 13.62 17.4537 13.9371 17.1946 14.1961C16.9356 14.4551 16.6185 14.5846 16.2434 14.5846H5.03192ZM4.58317 13.5013H16.2434C16.3075 13.5013 16.3663 13.4746 16.4196 13.4211C16.4731 13.3678 16.4998 13.309 16.4998 13.2448V3.75776C16.4998 3.69359 16.4731 3.63484 16.4196 3.58151C16.3663 3.52804 16.3075 3.5013 16.2434 3.5013H3.7563C3.69213 3.5013 3.63338 3.52804 3.58005 3.58151C3.52657 3.63484 3.49984 3.69359 3.49984 3.75776V14.5928L4.58317 13.5013Z" fill="#ED6D8F"></path></g></svg></div></div></div></div><div hidden="" id="immersive-translate-popup-overlay" class="immersive-translate-popup-overlay"><div class="immersive-translate-popup-wrapper" style="position: fixed; top: 108px; right: 65px;"></div></div></div></div></template></div></html>
