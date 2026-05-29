@@ -17,6 +17,8 @@
 #            ./launch.sh train 1.5b 3000 8
 #            ./launch.sh profile 760m
 
+#            ./launch.sh train 8b 3000 8
+
 set -euo pipefail
 
 source "$(dirname "$0")/config.sh"
@@ -39,7 +41,7 @@ case $MODE in
     throughput)
         TRAINING_STEPS=${3:-50}
         NODES=${4:-4}
-        TIME=00:30:00
+        TIME=00:15:00
         EVAL_INTERVAL=$TRAINING_STEPS
         EVAL_ITERS=0
         LR_WARMUP_ITERS=10
@@ -224,7 +226,7 @@ cat >> "$SCRIPT" << 'SETUP'
 mkdir -p logs $LOG_DIR $TENSORBOARD_DIR $DATASET_CACHE_DIR $CKPT_DIR $CORES_DIR
 
 cd $MEGATRON_LM_DIR
-flock $MEGATRON_LM_DIR/.git-lock bash -c "cd $MEGATRON_LM_DIR && git checkout -- . && git apply $WORKDIR/patches/*.patch"
+flock $MEGATRON_LM_DIR/.git-lock bash -c "cd $MEGATRON_LM_DIR && git checkout -- . && git clean -f && rm -f megatron/core/comm_logger.py && git apply $WORKDIR/patches/*.patch"
 # core_pattern on this cluster is a bare 'core_%h_%p' (no path), so dumps
 # land in the crashing process's cwd. The cgroup/container blocks the actual
 # write, leaving 0-byte litter scattered through the workdir; suppress instead.
@@ -243,6 +245,14 @@ if [ "${RESUBMIT_COUNT:-0}" -eq 0 ]; then
     rm -rf "$TRITON_CACHE_DIR" "$TORCHINDUCTOR_CACHE_DIR"
 fi
 export OMP_NUM_THREADS=$((SLURM_CPUS_PER_TASK/SLURM_GPUS_PER_NODE))
+# Per-chain comm-log folder: fresh `./launch.sh` mints a new run id; resubmits
+# inherit COMM_LOG_RUN_ID via --export so they append into the same folder.
+if [ "${RESUBMIT_COUNT:-0}" -eq 0 ] || [ -z "${COMM_LOG_RUN_ID:-}" ]; then
+    COMM_LOG_RUN_ID="$(date +%Y%m%d-%H%M%S)-${SLURM_JOB_ID}"
+fi
+export COMM_LOG_RUN_ID
+export MEGATRON_COMM_LOG_DIR=$LOG_DIR/comm_logs/$COMM_LOG_RUN_ID
+echo "[comm-logs] run_id=$COMM_LOG_RUN_ID  dir=$MEGATRON_COMM_LOG_DIR"
 
 # nsys profiling: one .nsys-rep per node (each contains all 4 local ranks,
 # since nsys follows torchrun's child python workers). Empty in non-profile
@@ -330,8 +340,8 @@ MIXED_PRECISION_ARGS=(
 )
 
 DISTRIBUTED_ARGS=(
-    --tensor-model-parallel-size 1
-    --pipeline-model-parallel-size 1
+    --tensor-model-parallel-size 2
+    --pipeline-model-parallel-size 2
     --use-distributed-optimizer
     --overlap-grad-reduce
     --overlap-param-gather
@@ -447,7 +457,7 @@ if [ "$RESUBMIT" = "true" ] && [ "$SRUN_RC" -eq 0 ]; then
         # --chdir pins WorkDir to $WORKDIR so #SBATCH --output=logs/%x-%j.log
         # resolves under the project tree, not wherever cwd happens to be when
         # this footer runs (the script does `cd $MEGATRON_LM_DIR` earlier).
-        sbatch --chdir="$WORKDIR" --export=ALL,RESUBMIT_COUNT=$NEXT_COUNT "$0"
+        sbatch --chdir="$WORKDIR" --export=ALL,RESUBMIT_COUNT=$NEXT_COUNT,COMM_LOG_RUN_ID="$COMM_LOG_RUN_ID" "$0"
     fi
 fi
 

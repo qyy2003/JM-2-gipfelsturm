@@ -1,0 +1,675 @@
+From ddeeb635ef66a9c3a2692d4f1935d15d3f8db136 Mon Sep 17 00:00:00 2001
+From: Account course_00293 <course_00293@clariden-ln003.cscs.ch>
+Date: Wed, 20 May 2026 18:05:53 +0200
+Subject: [PATCH] tmp: comm logger instrumentation
+
+---
+ megatron/core/comm_logger.py                       | 294 +++++++++++++++++++++
+ megatron/core/distributed/param_and_grad_buffer.py |  50 ++--
+ .../core/pipeline_parallel/p2p_communication.py    |  49 ++++
+ megatron/core/tensor_parallel/mappings.py          |  64 ++++-
+ megatron/core/transformer/moe/token_dispatcher.py  |   7 +
+ megatron/training/training.py                      |   4 +
+ 6 files changed, 446 insertions(+), 22 deletions(-)
+ create mode 100644 megatron/core/comm_logger.py
+
+diff --git a/megatron/core/comm_logger.py b/megatron/core/comm_logger.py
+new file mode 100644
+index 000000000..364f41262
+--- /dev/null
++++ b/megatron/core/comm_logger.py
+@@ -0,0 +1,294 @@
++# Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
++"""Communication traffic logger for compute-network overlap analysis.
++
++Usage:
++  Set MEGATRON_COMM_LOG_DIR=/path/to/logdir before training.
++
++  Each rank writes: <logdir>/comm_rank<RRRR>.jsonl
++
++  To advance the step counter (call once per optimizer step):
++    from megatron.core.comm_logger import CommLogger
++    CommLogger.get().next_step()
++
++  Each JSON line has:
++    step, rank, name, gpu_ms, wall_start_us, wall_end_us, wall_dur_us,
++    send_bytes, recv_bytes, send_MB, recv_MB
++
++  'name' examples:
++    MoE-DISPATCH-FWD, MoE-DISPATCH-BWD
++    MoE-COMBINE-FWD,  MoE-COMBINE-BWD
++    PP-forward-recv,  PP-forward-send
++    PP-backward-recv, PP-backward-send
++    PP-fwd-send-bwd-recv, PP-bwd-send-fwd-recv
++"""
++
++import atexit
++import json
++import os
++import socket
++import threading
++import time
++from collections import deque
++from contextlib import contextmanager
++from typing import List, Optional
++
++import torch
++import torch.distributed as dist
++
++# Thread-local store for the "next A2A label" that callers set before each call.
++_tls = threading.local()
++
++
++def set_comm_label(label: str) -> None:
++    """Set the semantic label that will be consumed by the next _AllToAll call."""
++    _tls.label = label
++
++
++def pop_comm_label(default: str = "A2A-FWD") -> str:
++    """Retrieve and clear the pending label; return *default* if none was set."""
++    label = getattr(_tls, "label", default)
++    _tls.label = default
++    return label
++
++
++@contextmanager
++def logging_comm(name: str, group, send_bytes: int, recv_bytes: int):
++    """Bracket a single torch.distributed call so its launch is logged.
++
++    Usage:
++        with logging_comm("TP-AR", group, input_.nbytes, input_.nbytes):
++            torch.distributed.all_reduce(input_.contiguous(), group=group)
++
++    The peer list is `torch.distributed.get_process_group_ranks(group)`. Same
++    caveats as elsewhere in this logger: async collectives produce a `gpu_ms`
++    that only captures launch overhead, not the actual transfer time.
++    """
++    logger = CommLogger.get()
++    if not logger.enabled:
++        yield
++        return
++    start_ev = torch.cuda.Event(enable_timing=True)
++    end_ev = torch.cuda.Event(enable_timing=True)
++    wall_start = time.perf_counter_ns()
++    start_ev.record()
++    try:
++        yield
++    finally:
++        end_ev.record()
++        wall_end = time.perf_counter_ns()
++        peers = None
++        if group is not None:
++            try:
++                peers = torch.distributed.get_process_group_ranks(group)
++            except Exception:
++                pass
++        logger.record_scalar(
++            name, int(send_bytes), int(recv_bytes),
++            start_ev, end_ev, wall_start, wall_end, peers=peers,
++        )
++
++
++class CommLogger:
++    """Singleton that collects communication events and writes them to JSONL.
++
++    GPU timing is deferred: each call enqueues the (start, end) CUDA events and the
++    partially-built record. The queue is drained in FIFO order whenever the head's
++    end event is complete (non-blocking query), so we never stall the CPU on a GPU
++    event that is still in flight. flush() and close() force a blocking drain.
++    """
++
++    _instance: Optional["CommLogger"] = None
++    _lock = threading.Lock()
++
++    @classmethod
++    def get(cls) -> "CommLogger":
++        if cls._instance is None:
++            with cls._lock:
++                if cls._instance is None:
++                    cls._instance = cls()
++        return cls._instance
++
++    def __init__(self) -> None:
++        self._log_dir: str = os.environ.get("MEGATRON_COMM_LOG_DIR", "")
++        self._enabled: bool = bool(self._log_dir)
++        self._rank: int = -1
++        self._local_rank: int = -1
++        self._local_world_size: int = -1
++        self._world_size: int = -1
++        self._node_id: int = -1
++        self._hostname: str = ""
++        self._step: int = 0
++        self._file = None
++        self._init_done: bool = False
++        # Each entry: (record_dict_without_gpu_ms, start_event, end_event)
++        self._pending: "deque" = deque()
++
++    # ------------------------------------------------------------------
++    # Public API
++    # ------------------------------------------------------------------
++
++    @property
++    def enabled(self) -> bool:
++        return self._enabled
++
++    def next_step(self) -> None:
++        """Advance the global training-step counter by one."""
++        self._step += 1
++
++    def set_step(self, step: int) -> None:
++        self._step = step
++
++    def record(
++        self,
++        name: str,
++        send_tensor: Optional[torch.Tensor],
++        recv_tensor: Optional[torch.Tensor],
++        start_event: "torch.cuda.Event",
++        end_event: "torch.cuda.Event",
++        wall_start_ns: int,
++        wall_end_ns: int,
++        peers: Optional[List[int]] = None,
++    ) -> None:
++        """Enqueue one event. GPU elapsed time is filled in lazily.
++
++        `peers`: optional list of *global* ranks involved in this comm besides self.
++        For PP this is 1-2 entries (PP-next/PP-prev); for A2A it's all group members.
++        """
++        if not self._enabled:
++            return
++        send_bytes = int(send_tensor.nbytes) if send_tensor is not None else 0
++        recv_bytes = int(recv_tensor.nbytes) if recv_tensor is not None else 0
++        self._enqueue(name, send_bytes, recv_bytes, start_event, end_event,
++                      wall_start_ns, wall_end_ns, peers)
++
++    def record_scalar(
++        self,
++        name: str,
++        send_bytes: int,
++        recv_bytes: int,
++        start_event: "torch.cuda.Event",
++        end_event: "torch.cuda.Event",
++        wall_start_ns: int,
++        wall_end_ns: int,
++        peers: Optional[List[int]] = None,
++    ) -> None:
++        """Like record() but accepts pre-computed byte counts (for P2P where tensors may be None)."""
++        if not self._enabled:
++            return
++        self._enqueue(name, send_bytes, recv_bytes, start_event, end_event,
++                      wall_start_ns, wall_end_ns, peers)
++
++    def flush(self) -> None:
++        """Block until every queued event has completed, write them all, fsync."""
++        self._drain(block=True)
++        if self._file is not None:
++            self._file.flush()
++
++    def close(self) -> None:
++        self._drain(block=True)
++        if self._file is not None:
++            self._file.close()
++            self._file = None
++
++    # ------------------------------------------------------------------
++    # Internal helpers
++    # ------------------------------------------------------------------
++
++    def _enqueue(
++        self,
++        name: str,
++        send_bytes: int,
++        recv_bytes: int,
++        start_event: "torch.cuda.Event",
++        end_event: "torch.cuda.Event",
++        wall_start_ns: int,
++        wall_end_ns: int,
++        peers: Optional[List[int]] = None,
++    ) -> None:
++        self._lazy_init()
++        if self._file is None:
++            return
++        record = {
++            "step": self._step,
++            "rank": self._rank,
++            "local_rank": self._local_rank,
++            "node": self._node_id,
++            "name": name,
++            "gpu_ms": -1.0,  # filled in when the end event is ready
++            "wall_start_us": wall_start_ns // 1000,
++            "wall_end_us": wall_end_ns // 1000,
++            "wall_dur_us": (wall_end_ns - wall_start_ns) // 1000,
++            "send_bytes": send_bytes,
++            "recv_bytes": recv_bytes,
++            "send_MB": round(send_bytes / 1048576, 4),
++            "recv_MB": round(recv_bytes / 1048576, 4),
++        }
++        if peers is not None:
++            # List of global peer ranks; node/local_rank derivable via header's
++            # local_world_size (node = r // lws, local_rank = r % lws).
++            record["peers"] = list(peers)
++        self._pending.append((record, start_event, end_event))
++        # Best-effort, non-blocking drain so the queue stays small.
++        self._drain(block=False)
++
++    def _drain(self, block: bool) -> None:
++        """Drain the pending queue in FIFO order.
++
++        Non-blocking: stops at the first head whose end event is not yet complete.
++        Blocking: synchronizes on each end event so every queued entry is emitted.
++        """
++        if self._file is None:
++            return
++        while self._pending:
++            record, start_ev, end_ev = self._pending[0]
++            if not block and not end_ev.query():
++                # Head still in flight; preserve ordering by waiting until next drain.
++                return
++            if block:
++                end_ev.synchronize()
++            try:
++                record["gpu_ms"] = round(start_ev.elapsed_time(end_ev), 4)
++            except RuntimeError:
++                record["gpu_ms"] = -1.0
++            self._file.write(json.dumps(record) + "\n")
++            self._pending.popleft()
++
++    def _lazy_init(self) -> None:
++        if self._init_done:
++            return
++        self._init_done = True
++        if dist.is_initialized():
++            self._rank = dist.get_rank()
++            self._world_size = dist.get_world_size()
++        else:
++            self._rank = int(os.environ.get("RANK", 0))
++            self._world_size = int(os.environ.get("WORLD_SIZE", 1))
++        self._local_rank = int(os.environ.get("LOCAL_RANK", "0"))
++        self._local_world_size = int(os.environ.get(
++            "LOCAL_WORLD_SIZE",
++            os.environ.get(
++                "SLURM_NTASKS_PER_NODE",
++                str(torch.cuda.device_count() if torch.cuda.is_available() else 1),
++            ),
++        ))
++        if self._local_world_size > 0:
++            self._node_id = self._rank // self._local_world_size
++        self._hostname = socket.gethostname()
++        if self._enabled:
++            os.makedirs(self._log_dir, exist_ok=True)
++            path = os.path.join(self._log_dir, f"comm_rank{self._rank:04d}.jsonl")
++            self._file = open(path, "a", buffering=1)  # line-buffered, appends on resubmit
++            # Ensure the tail of the deferred queue is drained on interpreter exit.
++            atexit.register(self.close)
++            # Session-header line so analysis tools can resolve (peer_rank → node,
++            # local_rank) without contacting other ranks. One per session, so a
++            # resubmitted run produces multiple header lines in the same file.
++            self._file.write(json.dumps({
++                "meta": True,
++                "rank": self._rank,
++                "local_rank": self._local_rank,
++                "node": self._node_id,
++                "hostname": self._hostname,
++                "world_size": self._world_size,
++                "local_world_size": self._local_world_size,
++            }) + "\n")
+diff --git a/megatron/core/distributed/param_and_grad_buffer.py b/megatron/core/distributed/param_and_grad_buffer.py
+index b192f182d..a80d19fc2 100644
+--- a/megatron/core/distributed/param_and_grad_buffer.py
++++ b/megatron/core/distributed/param_and_grad_buffer.py
+@@ -282,12 +282,20 @@ class _ParamAndGradBucketGroup:
+                 local_data_view = self.cached_param_buffer_shard_list[idx][
+                     self.intra_distributed_optimizer_instance_rank
+                 ]
+-                dist_all_gather_func(
+-                    bucket.param_data,
+-                    local_data_view,
+-                    group=self.intra_distributed_optimizer_instance_group,
+-                    async_op=async_op,
+-                )
++                from megatron.core.comm_logger import logging_comm
++
++                with logging_comm(
++                    "DP-AG",
++                    self.intra_distributed_optimizer_instance_group,
++                    local_data_view.nbytes,
++                    bucket.param_data.nbytes,
++                ):
++                    dist_all_gather_func(
++                        bucket.param_data,
++                        local_data_view,
++                        group=self.intra_distributed_optimizer_instance_group,
++                        async_op=async_op,
++                    )
+         if async_op:
+             self.param_gather_handle = cm
+         else:
+@@ -432,6 +440,8 @@ class _ParamAndGradBucketGroup:
+         grad_reduce_handle = None
+         with stream_context, _coalescing_manager(communication_group, async_ops=async_op) as cm:
+             for idx, bucket in enumerate(self.buckets):
++                from megatron.core.comm_logger import logging_comm
++
+                 if self.ddp_config.use_distributed_optimizer and not force_all_reduce:
+                     if self.cached_grad_buffer_shard_list[idx] is None:
+                         self.cached_grad_buffer_shard_list[idx] = shard_buffer(
+@@ -440,21 +450,29 @@ class _ParamAndGradBucketGroup:
+                     local_data_view = self.cached_grad_buffer_shard_list[idx][
+                         self.intra_distributed_optimizer_instance_rank
+                     ]
+-                    grad_reduce_handle = dist_reduce_scatter_func(
+-                        local_data_view,
+-                        bucket.grad_data,
+-                        op=reduce_op,
+-                        group=communication_group,
+-                        async_op=async_op,
+-                    )
++                    with logging_comm(
++                        "DP-RS", communication_group,
++                        bucket.grad_data.nbytes, local_data_view.nbytes,
++                    ):
++                        grad_reduce_handle = dist_reduce_scatter_func(
++                            local_data_view,
++                            bucket.grad_data,
++                            op=reduce_op,
++                            group=communication_group,
++                            async_op=async_op,
++                        )
+                 else:
+                     if torch.distributed.get_rank() == 0 and force_all_reduce:
+                         logger.info(
+                             f"Performing reduction using all_reduce because {force_all_reduce=}"
+                         )
+-                    torch.distributed.all_reduce(
+-                        bucket.grad_data, op=reduce_op, group=communication_group, async_op=async_op
+-                    )
++                    with logging_comm(
++                        "DP-AR", communication_group,
++                        bucket.grad_data.nbytes, bucket.grad_data.nbytes,
++                    ):
++                        torch.distributed.all_reduce(
++                            bucket.grad_data, op=reduce_op, group=communication_group, async_op=async_op
++                        )
+ 
+         # With multiple DistOpt instances, we need to all-reduce across instances.
+         if (
+diff --git a/megatron/core/pipeline_parallel/p2p_communication.py b/megatron/core/pipeline_parallel/p2p_communication.py
+index ac839c21f..350ab7d43 100644
+--- a/megatron/core/pipeline_parallel/p2p_communication.py
++++ b/megatron/core/pipeline_parallel/p2p_communication.py
+@@ -1,6 +1,7 @@
+ # Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ 
+ 
++import time
+ from typing import List, Optional, Tuple, Union
+ 
+ import torch
+@@ -373,6 +374,34 @@ class P2PCommunicator:
+         if tensor_recv_next_func is not None:
+             tensor_recv_next = tensor_recv_next_func()
+ 
++        # Build a human-readable label describing direction of this P2P exchange.
++        _pp_label_parts = []
++        if tensor_send_next is not None:
++            _pp_label_parts.append("fwd-send")
++        if tensor_send_prev is not None:
++            _pp_label_parts.append("bwd-send")
++        if recv_prev:
++            _pp_label_parts.append("fwd-recv")
++        if recv_next:
++            _pp_label_parts.append("bwd-recv")
++        _pp_label = "PP-" + "+".join(_pp_label_parts) if _pp_label_parts else "PP-noop"
++
++        # Global ranks of the PP neighbor(s) actually touched by this exchange.
++        _pp_peers = []
++        if (tensor_send_next is not None or recv_next) and next_rank is not None:
++            _pp_peers.append(next_rank)
++        if (tensor_send_prev is not None or recv_prev) and prev_rank is not None:
++            _pp_peers.append(prev_rank)
++
++        from megatron.core.comm_logger import CommLogger
++
++        _pp_logger = CommLogger.get()
++        if _pp_logger.enabled:
++            _pp_start_ev = torch.cuda.Event(enable_timing=True)
++            _pp_end_ev = torch.cuda.Event(enable_timing=True)
++            _pp_wall_start = time.perf_counter_ns()
++            _pp_start_ev.record()
++
+         p2p_reqs = p2p_func(
+             tensor_send_prev=tensor_send_prev,
+             tensor_recv_prev=tensor_recv_prev,
+@@ -392,6 +421,26 @@ class P2PCommunicator:
+                 req.wait()
+             reqs = None
+ 
++        if _pp_logger.enabled:
++            _pp_end_ev.record()
++            _pp_wall_end = time.perf_counter_ns()
++            _send_bytes = sum(
++                t.nbytes for t in (tensor_send_next, tensor_send_prev) if t is not None
++            )
++            _recv_bytes = sum(
++                t.nbytes for t in (tensor_recv_prev, tensor_recv_next) if t is not None
++            )
++            _pp_logger.record_scalar(
++                _pp_label,
++                _send_bytes,
++                _recv_bytes,
++                _pp_start_ev,
++                _pp_end_ev,
++                _pp_wall_start,
++                _pp_wall_end,
++                peers=_pp_peers,
++            )
++
+         if config.batch_p2p_comm and config.batch_p2p_sync:
+             # To protect against race condition when using batch_isend_irecv().
+             # User should assert that we have a modern enough PyTorch to not need this
+diff --git a/megatron/core/tensor_parallel/mappings.py b/megatron/core/tensor_parallel/mappings.py
+index 9ff69c9dc..5b5ed0f3c 100644
+--- a/megatron/core/tensor_parallel/mappings.py
++++ b/megatron/core/tensor_parallel/mappings.py
+@@ -1,5 +1,7 @@
+ # Copyright (c) 2022, NVIDIA CORPORATION. All rights reserved.
+ 
++import time
++
+ import torch
+ 
+ from megatron.core.parallel_state import get_global_memory_buffer
+@@ -28,7 +30,10 @@ def _reduce(input_, group):
+         return input_
+ 
+     # All-reduce.
+-    torch.distributed.all_reduce(input_.contiguous(), group=group)
++    from megatron.core.comm_logger import logging_comm
++
++    with logging_comm("TP-AR", group, input_.nbytes, input_.nbytes):
++        torch.distributed.all_reduce(input_.contiguous(), group=group)
+ 
+     return input_
+ 
+@@ -89,7 +94,10 @@ def _gather_along_last_dim(input_, group):
+     dim_size[0] = dim_size[0] * world_size
+ 
+     output = torch.empty(dim_size, dtype=input_.dtype, device=torch.cuda.current_device())
+-    dist_all_gather_func(output, input_.contiguous(), group=group)
++    from megatron.core.comm_logger import logging_comm
++
++    with logging_comm("TP-AG-last", group, input_.nbytes, output.nbytes):
++        dist_all_gather_func(output, input_.contiguous(), group=group)
+     tensor_list = output.chunk(world_size, dim=0)
+     output = torch.cat(tensor_list, dim=-1).contiguous()
+ 
+@@ -131,6 +139,8 @@ def _gather_along_first_dim(input_, group, output_split_sizes=None, use_global_b
+     if world_size == 1:
+         return input_
+ 
++    from megatron.core.comm_logger import logging_comm
++
+     dim_size = list(input_.size())
+     if output_split_sizes is None:
+         dim_size[0] = dim_size[0] * world_size
+@@ -139,7 +149,8 @@ def _gather_along_first_dim(input_, group, output_split_sizes=None, use_global_b
+             output = get_global_memory_buffer().get_tensor(dim_size, input_.dtype, "mpu")
+         else:
+             output = torch.empty(dim_size, dtype=input_.dtype, device=torch.cuda.current_device())
+-        dist_all_gather_func(output, input_.contiguous(), group=group)
++        with logging_comm("TP-AG-first", group, input_.nbytes, output.nbytes):
++            dist_all_gather_func(output, input_.contiguous(), group=group)
+     else:
+         dim_size[0] = sum(output_split_sizes)
+         if use_global_buffer:
+@@ -147,7 +158,8 @@ def _gather_along_first_dim(input_, group, output_split_sizes=None, use_global_b
+         else:
+             output = torch.empty(dim_size, dtype=input_.dtype, device=torch.cuda.current_device())
+         output_tensor_list = list(torch.split(output, output_split_sizes, dim=0))
+-        torch.distributed.all_gather(output_tensor_list, input_, group=group)
++        with logging_comm("TP-AG-first-split", group, input_.nbytes, output.nbytes):
++            torch.distributed.all_gather(output_tensor_list, input_, group=group)
+ 
+     return output
+ 
+@@ -167,6 +179,8 @@ def _reduce_scatter_along_first_dim(input_, group, input_split_sizes=None, use_g
+     if world_size == 1:
+         return input_
+ 
++    from megatron.core.comm_logger import logging_comm
++
+     if input_split_sizes is None:
+         dim_size = list(input_.size())
+         assert (
+@@ -179,7 +193,8 @@ def _reduce_scatter_along_first_dim(input_, group, input_split_sizes=None, use_g
+             output = get_global_memory_buffer().get_tensor(dim_size, input_.dtype, "mpu")
+         else:
+             output = torch.empty(dim_size, dtype=input_.dtype, device=torch.cuda.current_device())
+-        dist_reduce_scatter_func(output, input_.contiguous(), group=group)
++        with logging_comm("TP-RS-first", group, input_.nbytes, output.nbytes):
++            dist_reduce_scatter_func(output, input_.contiguous(), group=group)
+     else:
+         rank = group.rank()
+         input_tensor_list = list(torch.split(input_, input_split_sizes, dim=0))
+@@ -190,7 +205,8 @@ def _reduce_scatter_along_first_dim(input_, group, input_split_sizes=None, use_g
+             )
+         else:
+             output = torch.empty_like(input_tensor_list[rank])
+-        torch.distributed.reduce_scatter(output, input_tensor_list, group=group)
++        with logging_comm("TP-RS-first-split", group, input_.nbytes, output.nbytes):
++            torch.distributed.reduce_scatter(output, input_tensor_list, group=group)
+     return output
+ 
+ 
+@@ -421,10 +437,17 @@ class _AllToAll(torch.autograd.Function):
+     @staticmethod
+     def forward(ctx, group, input, output_split_sizes, input_split_sizes):
+         """Forward function."""
++        from megatron.core.comm_logger import CommLogger, pop_comm_label
++
+         ctx.group = group
+         ctx.output_split_sizes = output_split_sizes
+         ctx.input_split_sizes = input_split_sizes
+ 
++        # Consume the caller-set label (e.g. "MoE-DISPATCH-FWD").
++        logger = CommLogger.get()
++        label = pop_comm_label("A2A-FWD")
++        ctx._comm_label = label
++
+         world_size = group.size()
+         # Bypass the function if we are using only 1 GPU.
+         if world_size == 1:
+@@ -441,6 +464,13 @@ class _AllToAll(torch.autograd.Function):
+                 dtype=input.dtype,
+                 device=torch.cuda.current_device(),
+             )
++
++        if logger.enabled:
++            _start_ev = torch.cuda.Event(enable_timing=True)
++            _end_ev = torch.cuda.Event(enable_timing=True)
++            _wall_start = time.perf_counter_ns()
++            _start_ev.record()
++
+         torch.distributed.all_to_all_single(
+             output,
+             input,
+@@ -448,11 +478,33 @@ class _AllToAll(torch.autograd.Function):
+             input_split_sizes=input_split_sizes,
+             group=group,
+         )
++
++        if logger.enabled:
++            _end_ev.record()
++            _wall_end = time.perf_counter_ns()
++            try:
++                _a2a_peers = torch.distributed.get_process_group_ranks(group)
++            except Exception:
++                _a2a_peers = None
++            logger.record(label, input, output, _start_ev, _end_ev, _wall_start, _wall_end,
++                          peers=_a2a_peers)
++
+         return output
+ 
+     @staticmethod
+     def backward(ctx, *grad_output):
+         """Backward function."""
++        from megatron.core.comm_logger import CommLogger, set_comm_label
++
++        logger = CommLogger.get()
++        if logger.enabled:
++            # Derive backward label from the stored forward label.
++            fwd_label: str = getattr(ctx, "_comm_label", "A2A-FWD")
++            bwd_label = fwd_label.replace("-FWD", "-BWD")
++            if bwd_label == fwd_label:
++                bwd_label = fwd_label + "-BWD"
++            set_comm_label(bwd_label)
++
+         return (
+             None,
+             _AllToAll.apply(ctx.group, *grad_output, ctx.input_split_sizes, ctx.output_split_sizes),
+diff --git a/megatron/core/transformer/moe/token_dispatcher.py b/megatron/core/transformer/moe/token_dispatcher.py
+index f2e26c63c..606711efb 100644
+--- a/megatron/core/transformer/moe/token_dispatcher.py
++++ b/megatron/core/transformer/moe/token_dispatcher.py
+@@ -663,9 +663,13 @@ class MoEAlltoAllTokenDispatcher(MoETokenDispatcher):
+         self.tokens_per_expert = self._maybe_dtoh_and_synchronize(
+             "before_ep_alltoall", self.tokens_per_expert
+         )
++        from megatron.core.comm_logger import set_comm_label
++
++        set_comm_label("MoE-DISPATCH-FWD")
+         global_input_tokens = all_to_all(
+             self.ep_group, permutated_local_input_tokens, self.output_splits, self.input_splits
+         )
++        set_comm_label("MoE-DISPATCH-FWD-probs")
+         global_probs = all_to_all(
+             self.ep_group, permuted_probs, self.output_splits, self.input_splits
+         )
+@@ -807,6 +811,9 @@ class MoEAlltoAllTokenDispatcher(MoETokenDispatcher):
+         """
+         # Perform expert parallel AlltoAll communication
+         # hidden_states: [SEQL, H] -> [SEQL, H/TP]
++        from megatron.core.comm_logger import set_comm_label
++
++        set_comm_label("MoE-COMBINE-FWD")
+         permutated_local_input_tokens = all_to_all(
+             self.ep_group, hidden_states, self.input_splits, self.output_splits
+         )
+diff --git a/megatron/training/training.py b/megatron/training/training.py
+index a51a9846a..a5686bf8d 100644
+--- a/megatron/training/training.py
++++ b/megatron/training/training.py
+@@ -2844,6 +2844,10 @@ def train(
+ 
+         iteration += 1
+ 
++        # Advance comm-logger step counter so per-step logs are tagged correctly.
++        from megatron.core.comm_logger import CommLogger as _CommLogger
++        _CommLogger.get().set_step(iteration)
++
+         # If requested, manually register FSDP communication buffers after a short warmup.
+         if (
+             getattr(args, "fsdp_manual_registration", False)
+--
+2.43.0
+
