@@ -84,9 +84,10 @@ GBS=128
 SEQ_LEN=4096
 
 # Learning rate (overridable via env var, e.g. LR=1e-4 ./launch_moe.sh ...).
-# MIN_LR auto-derives as LR/10 unless explicitly set.
-LR=${LR:-1e-4} # 3e-4
-MIN_LR=${MIN_LR:-3e-5}
+# MIN_LR auto-derives as LR/10 unless explicitly set, so lowering LR doesn't
+# accidentally violate Megatron's assert min_lr <= lr.
+LR=${LR:-1e-5} # 3e-4
+MIN_LR=${MIN_LR:-$(awk "BEGIN { printf \"%g\", $LR / 10 }")}
 
 # MoE: 8 experts, top-2 routing, per-expert FFN=7168 (half of dense)
 # Total params ~22B; activated params per token ~= 8B dense
